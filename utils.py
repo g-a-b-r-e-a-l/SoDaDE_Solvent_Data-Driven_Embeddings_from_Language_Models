@@ -1,7 +1,7 @@
 import pandas as pd
 import torch
 
-from config import WORD_TOKENS, TOKEN_TYPES, VALS_COLUMNS, WORD_COLUMNS
+from config import WORD_TOKENS, TOKEN_TYPES, VALS_COLUMNS, SMILES_COLUMN, CHEMBERTA_FP_DIM, WORD_COLUMNS
 
 def load_and_clean_csv(DATA_PATH):
     try:
