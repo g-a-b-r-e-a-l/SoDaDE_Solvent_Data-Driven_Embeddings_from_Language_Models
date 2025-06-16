@@ -94,3 +94,5 @@ slurm-*.out
 *.sbatch.log
 *.e[0-9]*
 *.o[0-9]*
+
+submit.pbs
