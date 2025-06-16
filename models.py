@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from config import TRANSFORMER_HIDDEN_DIM, TRANSFORMER_DROPOUT_RATE, MAX_SEQUENCE_LENGTH, TOKEN_TYPE_VOCAB_SIZE, VOCAB_SIZE_COLUMNS, TRANSFORMER_HIDDEN_DIM, CHEMBERTA_FP_DIM
+from config import TRANSFORMER_HIDDEN_DIM, TRANSFORMER_DROPOUT_RATE, MAX_SEQUENCE_LENGTH, TOKEN_TYPE_VOCAB_SIZE, VOCAB_SIZE_COLUMNS, TRANSFORMER_HIDDEN_DIM
 
 class FeedForwardNeuralNetwork(nn.Module):
     def __init__(self, chemberta_fp_dim: int, transformer_hidden_dim: int):
