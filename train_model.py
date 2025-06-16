@@ -65,12 +65,12 @@ if __name__ == "__main__":
     argparser.add_argument("-num_epochs", "--number_of_epochs", type=int, help="Number of epochs to train the model.")
     argparser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="Learning rate for the optimizer.")
     argparser.add_argument("-bs", "--batch_size", type=int, default=32, help="Batch size for training.")
-    argparser.add_argument("-shuffle", "--shuffle", action="store_true", help="Shuffle the dataset before training.")
+    argparser.add_argument("-s", "--shuffle", type=bool, help="Shuffle the dataset before training.")
 
     args = argparser.parse_args()
 
     results = main(
-        args.num_epochs,
+        args.number_of_epochs,
         args.learning_rate,
         args.batch_size,
         args.shuffle,
