@@ -1,0 +1,96 @@
+# Byte-compiled / temporary files
+__pycache__/
+*.py[cod]
+*.so
+*.o
+*.out
+*.a
+*.log
+*.tmp
+*.swp
+*~
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Virtual environments
+.env/
+.venv/
+env/
+venv/
+ENV/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Compiled C/C++/Fortran modules
+*.mod
+*.exe
+
+# Package installers
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Python specific
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.mypy_cache/
+coverage.xml
+htmlcov/
+.cache/
+.tox/
+noxfile_.*
+*.coverage
+
+# R and RStudio
+.Rhistory
+.RData
+.Rproj.user/
+
+# Matlab
+*.asv
+*.mexa64
+*.mexmaci64
+*.mexw64
+
+# LaTeX
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.fmt
+*.fot
+*.cb
+*.cb2
+*.bbl
+*.blg
+*.synctex.gz
+*.fdb_latexmk
+*.pdfsync
+
+# Data files (optional — uncomment if large/intermediate files)
+# *.csv
+# *.tsv
+# *.h5
+# *.hdf5
+# *.npz
+# *.npy
+# *.pkl
+
+# VSCode or JetBrains IDEs
+.vscode/
+.idea/
+
+# HPC-specific
+slurm-*.out
+*.sbatch.log
+*.e[0-9]*
+*.o[0-9]*
