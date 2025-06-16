@@ -70,8 +70,8 @@ if __name__ == "__main__":
     args = argparser.parse_args()
 
     results = main(
-        args.number_of_epochs,
-        args.learning_rate,
-        args.batch_size,
-        args.shuffle,
+        number_of_epochs=args.number_of_epochs,
+        learning_rate=args.learning_rate,
+        batch_size=args.batch_size,
+        shuffle=args.shuffle,
     )
