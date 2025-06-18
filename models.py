@@ -1,20 +1,20 @@
 import torch
 import torch.nn as nn
 
-from config import TRANSFORMER_HIDDEN_DIM, TRANSFORMER_DROPOUT_RATE, MAX_SEQUENCE_LENGTH, TOKEN_TYPE_VOCAB_SIZE, VOCAB_SIZE_COLUMNS
+from config import TRANSFORMER_HIDDEN_DIM, MAX_SEQUENCE_LENGTH, TOKEN_TYPE_VOCAB_SIZE, VOCAB_SIZE_COLUMNS
 
 class FeedForwardNeuralNetwork(nn.Module):
     def __init__(self, chemberta_fp_dim: int, transformer_hidden_dim: int):
         super(FeedForwardNeuralNetwork, self).__init__()
 
-        FF_dimension = 4 * chemberta_fp_dim
+        ff_dimension = 4 * chemberta_fp_dim
 
         # First linear layer: 10 inputs, 20 outputs
-        self.fc1 = nn.Linear(chemberta_fp_dim, FF_dimension)
+        self.fc1 = nn.Linear(chemberta_fp_dim, ff_dimension)
         # Activation function
         self.relu = nn.ReLU()
         # Second linear layer: 4 * chemberta dimension inputs, 5 outputs
-        self.fc2 = nn.Linear(FF_dimension, transformer_hidden_dim)
+        self.fc2 = nn.Linear(ff_dimension, transformer_hidden_dim)
 
     def forward(self, x):
         x = self.fc1(x)
@@ -27,7 +27,7 @@ class FeedForwardNeuralNetwork(nn.Module):
 class MultiModalInputEmbeddings(nn.Module):
     def __init__(self, chemberta_fp_dim: int, column_vocab_size: int,
                  transformer_hidden_dim: int, max_sequence_length: int,
-                 token_type_vocab_size: int):
+                 token_type_vocab_size: int, dropout_rate: float):
         super().__init__()
 
         self.transformer_hidden_dim = transformer_hidden_dim
@@ -43,9 +43,10 @@ class MultiModalInputEmbeddings(nn.Module):
         self.token_type_embeddings = nn.Embedding(token_type_vocab_size, transformer_hidden_dim)
 
         self.LayerNorm = nn.LayerNorm(transformer_hidden_dim, eps=1e-12)
-        self.dropout = nn.Dropout(TRANSFORMER_DROPOUT_RATE)
+        self.dropout = nn.Dropout(dropout_rate)
 
     def forward(self, batch_size, max_batch_seq_len,
+         token_type_vocab: dict,
          SMILES_fps: torch.Tensor, # conains a 2d list of smiles strings, 1 per sequence
          word_tokens_ref: torch.Tensor, # contains the word token index in its position of the sequence
          values_ref: torch.Tensor, # contains the value in its position of the sequence
@@ -53,56 +54,25 @@ class MultiModalInputEmbeddings(nn.Module):
          position_ids: torch.Tensor, # position of eachitem in seq
          ):
 
-
-        '''read a bit more here - not 100% understood
-
-        'input_embeddings_projected': input_embeddings_projected,
-        'token_type_ids': token_type_ids,
-        'position_ids': position_ids,
-        'attention_mask': attention_mask,
-        'masked_lm_labels': masked_lm_labels
-
-
-        ok so basically i need to combine all the different modalities into the same tensor then add position and toekn type mebeddings - nice and simple.
-        just add them directly but I need to
-        '''
         input_embeddings = torch.zeros(batch_size, max_batch_seq_len, self.transformer_hidden_dim, dtype=torch.float)
 
         # Create masks for each token type
-        word_mask = (token_type_ids == 0)
-        smiles_mask = (token_type_ids == 1)
-        value_mask = (token_type_ids == 2)
-        special_token_mask = (token_type_ids >= 3) & (token_type_ids <= 5)
+        word_mask = (token_type_ids == token_type_vocab['WORD_TOKEN'])
+        smiles_mask = (token_type_ids == token_type_vocab['SMILES_TOKEN'])
+        value_mask = (token_type_ids == token_type_vocab['VALUE_TOKEN'])
+        special_token_mask = ((token_type_ids == token_type_vocab['CLS_TOKEN']) & 
+                              (token_type_ids == token_type_vocab['SEP_TOKEN']) & 
+                              (token_type_ids == token_type_vocab['MASK_TOKEN']))
 
         # Apply embeddings/projections based on masks
-        # Word tokens
-        # We need to apply embedding only where word_mask is true.
-        # property_embedding expects indices, so we use word_tokens_ref directly with the mask.
-        if word_mask.any(): # Check if there are any word tokens to process
-            input_embeddings[word_mask] = self.property_embedding(word_tokens_ref[word_mask])
-
-        # SMILES fingerprints
-        # smiles_proj expects the actual SMILES_fps data for the masked positions.
-        if smiles_mask.any():
-            input_embeddings[smiles_mask] = self.smiles_proj(SMILES_fps[smiles_mask])
-
-        # Numerical values
-        # value_proj expects the actual values_ref data for the masked positions.
-        # We need to unsqueeze values_ref[value_mask] to match the expected input shape for self.value_proj (batch_size, 1).
-        if value_mask.any():
-            input_embeddings[value_mask] = self.value_proj(values_ref[value_mask].unsqueeze(-1))
-
-        # Special tokens (Mask, SEP, CLS)
-        # token_type_embeddings expects the token_type_ids for the masked positions.
-        if special_token_mask.any():
-            input_embeddings[special_token_mask] = self.token_type_embeddings(token_type_ids[special_token_mask])
-
-
-
-
+        input_embeddings[word_mask] = self.property_embedding(word_tokens_ref[word_mask])
+        input_embeddings[smiles_mask] = self.smiles_proj(SMILES_fps[smiles_mask])
+        input_embeddings[value_mask] = self.value_proj(values_ref[value_mask].unsqueeze(-1))
+        input_embeddings[special_token_mask] = self.token_type_embeddings(token_type_ids[special_token_mask])
 
         position_embeddings = self.position_embeddings(position_ids)
         token_type_embeddings = self.token_type_embeddings(token_type_ids)
+        # Combine all embeddings
         embeddings = input_embeddings + position_embeddings + token_type_embeddings
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)

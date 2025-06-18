@@ -1,22 +1,27 @@
 import pandas as pd
-
 from torch.utils.data import Dataset
-from utils import create_diff_token_vocabs, create_values_tensor, word_token_indicies, create_token_type_tensor, create_fingerprints
-from utils import load_and_clean_csv
+from utils import (load_and_clean_csv, create_diff_token_vocabs,
+                    create_values_tensor, word_token_indicies, 
+                    create_token_type_tensor, create_fingerprints, 
+                    load_chemberta_model_and_tokenizer)
 
-from config import WORD_TOKENS, TOKEN_TYPES, DATA_PATH, MAX_SEQUENCE_LENGTH, WORD_COLUMNS, VALS_COLUMNS
+from config import WORD_TOKENS, TOKEN_TYPES
 
 class MolecularPropertyDataset(Dataset):
-    def __init__(self, df, max_len_plus_2, word_columns, vals_columns, smiles_column,
+    def __init__(self, df, max_seq_length, column_dict,
                  tokenizer, model_chemberta):
         self.df = df
-        self.token_type_vocab, self.word_vocab, VOCAB_SIZE_COLUMNS = create_diff_token_vocabs(WORD_TOKENS, TOKEN_TYPES)
+        word_columns = column_dict['WORD_COLUMNS']
+        value_columns = column_dict['VALUE_COLUMNS']
+        smiles_column = column_dict['SMILES_COLUMNS']
+        
+        token_type_vocab, word_vocab = create_diff_token_vocabs(WORD_TOKENS, TOKEN_TYPES)
 
-        self.values_tensor, self.missing_val_mask = create_values_tensor(df, max_len_plus_2, vals_columns)
-        self.word_index_tensor = word_token_indicies(df, max_len_plus_2, word_columns, self.word_vocab)
-        self.token_type_tensor = create_token_type_tensor(df, max_len_plus_2, word_columns, vals_columns, smiles_column, self.token_type_vocab)
+        self.values_tensor, self.missing_val_mask = create_values_tensor(df, max_seq_length, value_columns)
+        self.word_index_tensor = word_token_indicies(df, max_seq_length, word_columns, word_vocab)
+        self.token_type_tensor = create_token_type_tensor(df, max_seq_length, column_dict, token_type_vocab)
 
-        self.chemberta_fps_tensor = create_fingerprints(df, max_len_plus_2, smiles_column, tokenizer, model_chemberta)
+        self.chemberta_fps_tensor = create_fingerprints(df, max_seq_length, smiles_column, tokenizer, model_chemberta)
 
 
     def __len__(self):
@@ -34,21 +39,20 @@ class MolecularPropertyDataset(Dataset):
         return batch_dict
 
 
-def load_dataset(tokenizer, model_chemberta):
-    df = load_and_clean_csv(DATA_PATH)
+def load_dataset(data_path, column_dict, max_sequence_length=28):
+    df = load_and_clean_csv(data_path)
 
     if df is None:
         raise ValueError("DataFrame is empty or not loaded correctly.")
 
-    tokenizer = None  # Replace with actual tokenizer initialization
-    model_chemberta = None  # Replace with actual model initialization
+    tokenizer, model_chemberta, chemberta_dimension = load_chemberta_model_and_tokenizer()
 
     dataset = MolecularPropertyDataset(df, 
-                                       MAX_SEQUENCE_LENGTH, 
-                                       WORD_COLUMNS, 
-                                       VALS_COLUMNS, 
-                                       'SMILES', 
+                                       max_sequence_length, 
+                                       column_dict['WORD_COLUMNS'], 
+                                       column_dict['VALUE_COLUMNS'], 
+                                       column_dict['SMILES_COLUMNS'], 
                                        tokenizer, 
                                        model_chemberta)
     
-    return dataset
+    return dataset, chemberta_dimension

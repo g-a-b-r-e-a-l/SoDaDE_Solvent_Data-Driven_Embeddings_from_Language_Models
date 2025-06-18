@@ -1,7 +1,6 @@
 import torch
-from config import MASKING_PROBABILITY, TOKEN_TYPE_MASK
 
-def collate_fn(batch_list_of_dicts):
+def collate_fn(batch_list_of_dicts, token_type_vocab, masking_probability=0.15):
 
     values_ref_list = [d['values_tensor'] for d in batch_list_of_dicts]
     missing_val_mask_list = [d['missing_val_mask'] for d in batch_list_of_dicts]
@@ -24,11 +23,11 @@ def collate_fn(batch_list_of_dicts):
 
     present_vals = ~torch.isnan(values_ref)
     rand_tensor = torch.rand(values_ref.shape)
-    final_mask = (present_vals) & (rand_tensor < MASKING_PROBABILITY)
+    final_mask = (present_vals) & (rand_tensor < masking_probability)
 
     masked_lm_labels[final_mask]= values_ref[final_mask]
-    token_type_ids[final_mask] = TOKEN_TYPE_MASK
-    token_type_ids[missing_val_mask] = TOKEN_TYPE_MASK
+    token_type_ids[final_mask] = token_type_vocab['TOKEN_TYPE_MASK']
+    token_type_ids[missing_val_mask] = token_type_vocab['TOKEN_TYPE_MASK']
 
     return {
         'SMILES_fps' : SMILES_fps,
