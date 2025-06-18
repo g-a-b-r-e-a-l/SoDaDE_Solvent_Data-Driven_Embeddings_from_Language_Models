@@ -1,17 +1,16 @@
 
 from config import (
     BATCH_SIZE,
-    MAX_SEQUENCE_LENGTH,
-    NUM_EPOCHS,
+    MAX_SEQUENCE_LENGTH
 )
 import torch
 from tqdm import tqdm
 
-def predict_values(model, dataloader, optimizer, criterion, train=True, epoch=0):
+def predict_values(model, dataloader, optimizer, criterion, num_epochs, train=True, epoch=0):
 
     total_loss = 0
 
-    for batch_idx, batch_dict in enumerate(tqdm(dataloader, desc=f"Epoch {epoch+1}/{NUM_EPOCHS}", leave=True)):
+    for batch_idx, batch_dict in enumerate(tqdm(dataloader, desc=f"Epoch {epoch+1}/{num_epochs}", leave=True)):
         # 1. Move batch data to the appropriate device
         # This loop ensures all tensors in the dictionary are on the correct device
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

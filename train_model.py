@@ -2,7 +2,7 @@ import argparse
 import textwrap
 
 from dataset import load_dataset
-from collate import collate_fn
+from collate import create_collate_fn
 from predict_values import predict_values
 
 from torch.utils.data import DataLoader
@@ -16,14 +16,14 @@ from models import MultiModalImputationTransformer
 from config import (VOCAB_SIZE_COLUMNS, TRANSFORMER_HIDDEN_DIM, 
                     MAX_SEQUENCE_LENGTH, TOKEN_TYPE_VOCAB_SIZE, 
                     NUM_ATTENTION_HEADS, NUM_TRANSFORMER_LAYERS, 
-                    TRANSFORMER_DROPOUT_RATE, DATA_PATH, VAL_PATH, 
-                    COLUMN_DICT)
+                    DROPOUT_RATE, DATA_PATH, VAL_PATH, 
+                    COLUMN_DICT, MASKING_PROBABILITY, TOKEN_TYPE_VOCAB)
 
 
 def main(
     number_of_epochs: int,
     learning_rate: float,
-    batch_size: int = 32,
+    batch_size: int = 16,
     shuffle: bool = True,
 
 ):
@@ -32,9 +32,13 @@ def main(
     dataset_train, chemberta_dimension = load_dataset(DATA_PATH, COLUMN_DICT, MAX_SEQUENCE_LENGTH)
     dataset_val, _ = load_dataset(VAL_PATH, COLUMN_DICT, MAX_SEQUENCE_LENGTH)
 
+    #Wrap collate function to take additional variables
+    configured_collate_fn = create_collate_fn(TOKEN_TYPE_VOCAB, MASKING_PROBABILITY)
+
+
     # Create DataLoader for training and validation datasets
-    dataloader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=shuffle, collate_fn=collate_fn)
-    dataloader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=shuffle, collate_fn=collate_fn)
+    dataloader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=shuffle, collate_fn=configured_collate_fn)
+    dataloader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=shuffle, collate_fn=configured_collate_fn)
 
     # Initialize the model
     model = MultiModalImputationTransformer(
@@ -45,7 +49,7 @@ def main(
          token_type_vocab_size=TOKEN_TYPE_VOCAB_SIZE,
          num_attention_heads=NUM_ATTENTION_HEADS,
          num_transformer_layers=NUM_TRANSFORMER_LAYERS,
-         dropout_rate=TRANSFORMER_DROPOUT_RATE
+         dropout_rate=DROPOUT_RATE
      )
     
     # Set up the optimizer and loss function and learning rate scheduler
@@ -75,14 +79,14 @@ def main(
         # 'desc' is the description, 'leave' keeps the bar after completion
         # 'position=0' helps if you have nested progress bars
 
-        train_loss = predict_values(model, dataloader_train, optimizer, criterion, train=True, epoch=epoch)
+        train_loss = predict_values(model, dataloader_train, optimizer, criterion, number_of_epochs, train=True, epoch=epoch)
     
         # 7. Validation step    
    
         model.eval()
 
         with torch.no_grad():
-            val_loss = predict_values(model, dataloader_val, optimizer, criterion, train=False, epoch=epoch)
+            val_loss = predict_values(model, dataloader_val, optimizer, criterion, number_of_epochs, train=False, epoch=epoch)
         
         #Update the learning rate scheduler
         scheduler.step(val_loss)
@@ -110,7 +114,7 @@ if __name__ == "__main__":
     )
     argparser.add_argument("-num_epochs", "--number_of_epochs", type=int, help="Number of epochs to train the model.")
     argparser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="Learning rate for the optimizer.")
-    argparser.add_argument("-bs", "--batch_size", type=int, default=32, help="Batch size for training.")
+    argparser.add_argument("-bs", "--batch_size", type=int, default=16, help="Batch size for training.")
     argparser.add_argument("-s", "--shuffle", type=bool, help="Shuffle the dataset before training.")
 
     args = argparser.parse_args()
