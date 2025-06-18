@@ -49,9 +49,7 @@ def load_dataset(data_path, column_dict, max_sequence_length=28):
 
     dataset = MolecularPropertyDataset(df, 
                                        max_sequence_length, 
-                                       column_dict['WORD_COLUMNS'], 
-                                       column_dict['VALUE_COLUMNS'], 
-                                       column_dict['SMILES_COLUMNS'], 
+                                       column_dict, 
                                        tokenizer, 
                                        model_chemberta)
     

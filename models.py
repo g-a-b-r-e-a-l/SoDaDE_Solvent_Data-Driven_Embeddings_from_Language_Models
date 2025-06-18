@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 
-from config import TRANSFORMER_HIDDEN_DIM, MAX_SEQUENCE_LENGTH, TOKEN_TYPE_VOCAB_SIZE, VOCAB_SIZE_COLUMNS
+from config import TRANSFORMER_HIDDEN_DIM, MAX_SEQUENCE_LENGTH, TOKEN_TYPE_VOCAB_SIZE, VOCAB_SIZE_COLUMNS, TOKEN_TYPE_VOCAB
+
 
 class FeedForwardNeuralNetwork(nn.Module):
     def __init__(self, chemberta_fp_dim: int, transformer_hidden_dim: int):
@@ -90,11 +91,12 @@ class MultiModalImputationTransformer(nn.Module):
         # get embeddings from multimodal embeddings - need to look into this more
 
         self.embeddings = MultiModalInputEmbeddings(
-            chemberta_fp_dim=384,
-            column_vocab_size=VOCAB_SIZE_COLUMNS,
-            transformer_hidden_dim=TRANSFORMER_HIDDEN_DIM,
-            max_sequence_length=MAX_SEQUENCE_LENGTH,
-            token_type_vocab_size=TOKEN_TYPE_VOCAB_SIZE
+            chemberta_fp_dim=chemberta_fp_dim,
+            column_vocab_size=column_vocab_size,
+            transformer_hidden_dim=transformer_hidden_dim,
+            max_sequence_length=max_sequence_length,
+            token_type_vocab_size=token_type_vocab_size, 
+            dropout_rate=dropout_rate
         )
 
         # initialise standard encoder layer - structure - multi-head attention, add+norm, FF, add+norm
@@ -117,7 +119,7 @@ class MultiModalImputationTransformer(nn.Module):
             nn.Linear(transformer_hidden_dim, 1)
         )
 
-    def forward(self, batch_size, MAX_SEQUENCE_LENGTH,
+    def forward(self, batch_size, max_sequence_length,
         SMILES_fps : torch.Tensor,
         word_tokens_ref : torch.Tensor,
         values_ref : torch.Tensor,
@@ -129,7 +131,7 @@ class MultiModalImputationTransformer(nn.Module):
 
 
 
-        embeddings = self.embeddings(batch_size, MAX_SEQUENCE_LENGTH,
+        embeddings = self.embeddings(batch_size, max_sequence_length, TOKEN_TYPE_VOCAB,
          SMILES_fps, # conains a 2d list of smiles strings, 1 per sequence
          word_tokens_ref, # contains the word token index in its position of the sequence
          values_ref, # contains the value in its position of the sequence
