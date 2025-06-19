@@ -22,9 +22,13 @@ from config import (VOCAB_SIZE_COLUMNS, TRANSFORMER_HIDDEN_DIM,
 
 def main(
     number_of_epochs: int,
-    learning_rate: float,
+    learning_rate: float = 0.001,
     batch_size: int = 16,
     shuffle: bool = True,
+    DATA_PATH: str = DATA_PATH,
+    VAL_PATH: str = VAL_PATH,
+    MASKING_PROBABILITY: float = MASKING_PROBABILITY,
+    DROPOUT_RATE: float = DROPOUT_RATE
 
 ):
     
@@ -70,7 +74,7 @@ def main(
 
     # Training loop
     best_val_loss = float('inf') # Initialize with a very large number
-    best_model_path = 'best_model_w_common_data.pth'
+    best_model_path = f'val_loss{best_val_loss}_DP_{DATA_PATH}_LR_{learning_rate}_DPR_{DROPOUT_RATE}_MP_{MASKING_PROBABILITY}.pth'
 
     for epoch in range(number_of_epochs):
         model.train() # Set the model to training mode
@@ -116,6 +120,10 @@ if __name__ == "__main__":
     argparser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="Learning rate for the optimizer.")
     argparser.add_argument("-bs", "--batch_size", type=int, default=16, help="Batch size for training.")
     argparser.add_argument("-s", "--shuffle", type=bool, help="Shuffle the dataset before training.")
+    argparser.add_argument("-td", "--train_data", type=str, help="Path to the training data file.")
+    argparser.add_argument("-vd", "--val_data", type=str, help="Path to the validation data file.")
+    argparser.add_argument("-mp", "--masking_probability", type=float, default=0.3, help="Probability of masking tokens in the input.")
+    argparser.add_argument("-dr", "--dropout_rate", type=float, default=0.3, help="Dropout rate for the model.")
 
     args = argparser.parse_args()
 
