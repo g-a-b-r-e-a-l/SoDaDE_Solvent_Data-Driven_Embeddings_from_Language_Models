@@ -73,7 +73,6 @@ def main(
 
     # Training loop
     best_val_loss = float('inf') # Initialize with a very large number
-    best_model_path = f'val_loss{best_val_loss}_EP_{number_of_epochs}_DP_{DATA_PATH}_LR_{learning_rate}_DPR_{DROPOUT_RATE}_MP_{MASKING_PROBABILITY}.pth'
 
     for epoch in range(number_of_epochs):
         model.train() # Set the model to training mode
@@ -98,6 +97,7 @@ def main(
         print(f'Validation loss decreased ({best_val_loss:.4f} --> {val_loss:.4f}). Saving model...')
         best_val_loss = val_loss
         # Save the model's state_dict
+        best_model_path = f'val_loss{best_val_loss}_EP_{number_of_epochs}_DP_{DATA_PATH}_LR_{learning_rate}_DPR_{DROPOUT_RATE}_MP_{MASKING_PROBABILITY}.pth'
         torch.save(model.state_dict(), best_model_path)
     # save results here
 
