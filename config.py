@@ -1,6 +1,6 @@
 # --- 0. Model Configuration ---
 DATA_PATH = "7376_train_dataset_norm.csv"
-VAL_PATH = "560_val_dataset_norm copy.csv"
+VAL_PATH = "560_val_dataset_norm.csv"
 
 COLUMN_DICT = {
     'WORD_COLUMNS': ['solvent', '1', '3', '5', '7', '9', '11', '13', '15', '17', '19', '21',  '23'],
