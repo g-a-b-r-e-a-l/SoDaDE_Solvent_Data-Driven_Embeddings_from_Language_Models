@@ -15,9 +15,8 @@ from models import MultiModalImputationTransformer
 
 from config import (VOCAB_SIZE_COLUMNS, TRANSFORMER_HIDDEN_DIM, 
                     MAX_SEQUENCE_LENGTH, TOKEN_TYPE_VOCAB_SIZE, 
-                    NUM_ATTENTION_HEADS, NUM_TRANSFORMER_LAYERS, 
-                    DROPOUT_RATE, DATA_PATH, VAL_PATH, 
-                    COLUMN_DICT, MASKING_PROBABILITY, TOKEN_TYPE_VOCAB)
+                    NUM_ATTENTION_HEADS, NUM_TRANSFORMER_LAYERS,  
+                    COLUMN_DICT, TOKEN_TYPE_VOCAB)
 
 
 def main(
@@ -25,10 +24,10 @@ def main(
     learning_rate: float = 0.001,
     batch_size: int = 16,
     shuffle: bool = True,
-    DATA_PATH: str = DATA_PATH,
-    VAL_PATH: str = VAL_PATH,
-    MASKING_PROBABILITY: float = MASKING_PROBABILITY,
-    DROPOUT_RATE: float = DROPOUT_RATE
+    DATA_PATH: str = "7376_train_dataset_norm.csv",
+    VAL_PATH: str = "560_val_dataset_norm.csv",
+    MASKING_PROBABILITY: float = 0.3,
+    DROPOUT_RATE: float = 0.3
 
 ):
     
@@ -74,7 +73,7 @@ def main(
 
     # Training loop
     best_val_loss = float('inf') # Initialize with a very large number
-    best_model_path = f'val_loss{best_val_loss}_DP_{DATA_PATH}_LR_{learning_rate}_DPR_{DROPOUT_RATE}_MP_{MASKING_PROBABILITY}.pth'
+    best_model_path = f'val_loss{best_val_loss}_EP_{number_of_epochs}_DP_{DATA_PATH}_LR_{learning_rate}_DPR_{DROPOUT_RATE}_MP_{MASKING_PROBABILITY}.pth'
 
     for epoch in range(number_of_epochs):
         model.train() # Set the model to training mode
@@ -132,4 +131,8 @@ if __name__ == "__main__":
         learning_rate=args.learning_rate,
         batch_size=args.batch_size,
         shuffle=args.shuffle,
+        DATA_PATH=args.train_data if args.train_data else "7376_train_dataset_norm.csv",
+        VAL_PATH=args.val_data if args.val_data else "560_val_dataset_norm.csv",
+        MASKING_PROBABILITY=args.masking_probability,
+        DROPOUT_RATE=args.dropout_rate
     )
