@@ -2,9 +2,15 @@
 DATA_PATH = "7376_train_dataset_norm.csv"
 VAL_PATH = "560_val_dataset_norm.csv"
 
+
+
+
+
 COLUMN_DICT = {
-    'WORD_COLUMNS': ['solvent', '1', '3', '5', '7', '9', '11', '13', '15', '17', '19', '21',  '23'],
-    'VALUE_COLUMNS': ['2', '4', '6', '8', '10', '12', '14', '16', '18', '20', '22', '24'],
+    'WORD_COLUMNS': ['solvent', 'Property_0', 'Property_1', 'Property_2',  'Property_3',  'Property_4', 'Property_5',
+                        'Property_6', 'Property_7', 'Property_8', 'Property_9', 'Property_10',  'Property_11'],
+    'VALUE_COLUMNS': ['Value_0', 'Value_1', 'Value_2', 'Value_3', 'Value_4', 'Value_5',
+                        'Value_6','Value_7', 'Value_8', 'Value_9', 'Value_10', 'Value_11'],
     'SMILES_COLUMNS': 'SMILES'
 }
 
@@ -16,13 +22,13 @@ token_type_vocab = {token_type: i for i, token_type in enumerate(TOKEN_TYPES)}
 TOKEN_TYPE_VOCAB = token_type_vocab
 
 TRANSFORMER_HIDDEN_DIM = 384
-NUM_ATTENTION_HEADS = 4
-NUM_TRANSFORMER_LAYERS = 2
+NUM_ATTENTION_HEADS = 8
+NUM_TRANSFORMER_LAYERS = 3
 
 
 MAX_SEQUENCE_LENGTH = 28
 DROPOUT_RATE = 0.3
-MASKING_PROBABILITY = 0.3
+MASKING_PROBABILITY = 0.5
 
 #--- 1. Training Configuration ---
 

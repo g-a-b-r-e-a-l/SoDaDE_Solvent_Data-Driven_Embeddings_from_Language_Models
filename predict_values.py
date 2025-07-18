@@ -1,7 +1,8 @@
 
 from config import (
     BATCH_SIZE,
-    MAX_SEQUENCE_LENGTH
+    MAX_SEQUENCE_LENGTH,
+    TOKEN_TYPE_VOCAB
 )
 import torch
 from tqdm import tqdm
@@ -21,7 +22,8 @@ def predict_values(model, dataloader, optimizer, criterion, num_epochs, train=Tr
             optimizer.zero_grad()
 
         # 3. Forward pass
-        predicted_values = model(BATCH_SIZE, MAX_SEQUENCE_LENGTH, **batch_dict)
+
+        predicted_values = model(TOKEN_TYPE_VOCAB,  **batch_dict)
 
     true_masked_labels = inputs['masked_lm_labels'][inputs['masked_lm_labels'] != -100.0]
 

@@ -11,7 +11,7 @@ from tqdm.auto import tqdm # For a nice progress bar
 import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from models import MultiModalImputationTransformer
+from models import MultiModalRegressionTransformer
 
 from config import (VOCAB_SIZE_COLUMNS, TRANSFORMER_HIDDEN_DIM, 
                     MAX_SEQUENCE_LENGTH, TOKEN_TYPE_VOCAB_SIZE, 
@@ -44,7 +44,7 @@ def main(
     dataloader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=shuffle, collate_fn=configured_collate_fn)
 
     # Initialize the model
-    model = MultiModalImputationTransformer(
+    model = MultiModalRegressionTransformer(
          chemberta_fp_dim=chemberta_dimension,
          column_vocab_size=VOCAB_SIZE_COLUMNS,
          transformer_hidden_dim=TRANSFORMER_HIDDEN_DIM,
@@ -93,12 +93,14 @@ def main(
         #Update the learning rate scheduler
         scheduler.step(val_loss)
 
-    if val_loss < best_val_loss:
-        print(f'Validation loss decreased ({best_val_loss:.4f} --> {val_loss:.4f}). Saving model...')
-        best_val_loss = val_loss
-        # Save the model's state_dict
-        best_model_path = f'val_loss{best_val_loss}_EP_{number_of_epochs}_DP_{DATA_PATH}_LR_{learning_rate}_DPR_{DROPOUT_RATE}_MP_{MASKING_PROBABILITY}.pth'
-        torch.save(model.state_dict(), best_model_path)
+        print('train_loss = ', train_loss, 'val_loss = ', val_loss)
+
+        if val_loss < best_val_loss:
+            print(f'Validation loss decreased ({best_val_loss:.4f} --> {val_loss:.4f}). Saving model...')
+            best_val_loss = val_loss
+            # Save the model's state_dict
+            best_model_path = f'val_loss{best_val_loss}_EP_{number_of_epochs}_DP_{DATA_PATH}_LR_{learning_rate}_DPR_{DROPOUT_RATE}_MP_{MASKING_PROBABILITY}.pth'
+            torch.save(model.state_dict(), best_model_path)
     # save results here
 
     return None

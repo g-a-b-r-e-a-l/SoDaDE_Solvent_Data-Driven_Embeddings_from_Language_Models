@@ -18,7 +18,6 @@ def create_collate_fn(token_type_vocab, masking_probability=0.15):
         SMILES_fps = torch.stack(SMILES_fps_list)
 
         sequence_ids = torch.arange(token_type_ids.shape[1])
-        position_ids = sequence_ids.unsqueeze(0).expand(token_type_ids.shape[0], -1)
 
         attention_mask = torch.ones(token_type_ids.shape, dtype=torch.bool)
         masked_lm_labels = torch.full((token_type_ids.shape), -100.0, dtype=torch.float)
@@ -37,7 +36,6 @@ def create_collate_fn(token_type_vocab, masking_probability=0.15):
             'word_tokens_ref' : word_tokens_ref,
             'values_ref' : values_ref,
             'token_type_ids': token_type_ids,
-            'position_ids': position_ids,
             'attention_mask': attention_mask,
             'masked_lm_labels': masked_lm_labels
         }
