@@ -151,12 +151,13 @@ class MultiModalRegressionTransformer(nn.Module):
             for _ in range(num_transformer_layers)
         ])
         self.regression_head = nn.Sequential(
-            nn.Linear(transformer_hidden_dim, transformer_hidden_dim),
+            nn.Linear(transformer_hidden_dim, 4 * transformer_hidden_dim),
             nn.GELU(),
-            nn.LayerNorm(transformer_hidden_dim),
-            nn.Linear(transformer_hidden_dim, 1)
+            nn.LayerNorm(4 * transformer_hidden_dim),
+            nn.Linear(4 * transformer_hidden_dim, 1)
         )
         self._init_weights()
+
 
     def _init_weights(self):
         for p in self.parameters():
