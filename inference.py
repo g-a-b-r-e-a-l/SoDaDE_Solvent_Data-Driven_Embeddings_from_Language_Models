@@ -127,7 +127,7 @@ def main(
     dataset, chemberta_dimension = load_dataset(data_path, COLUMN_DICT, MAX_SEQUENCE_LENGTH)
     
     # Create collate function
-    configured_collate_fn = create_collate_fn(TOKEN_TYPE_VOCAB, masking_probability)
+    configured_collate_fn = create_collate_fn(TOKEN_TYPE_VOCAB, 0.4)
     
     # Create DataLoader
     dataloader = DataLoader(

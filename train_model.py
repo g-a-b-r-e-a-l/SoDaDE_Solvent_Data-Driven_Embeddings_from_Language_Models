@@ -67,7 +67,7 @@ def main(
         factor=0.5,         # Factor by which the learning rate will be reduced. new_lr = lr * factor
         patience=5,         # Number of epochs with no improvement after which learning rate will be reduced.
         #verbose=True,       # Print a message when LR is reduced
-        min_lr=1e-7,        # Minimum learning rate to which it can be reduced
+        min_lr=1e-8,        # Minimum learning rate to which it can be reduced
         cooldown=0          # Number of epochs to wait before resuming normal operation after lr has been reduced.
     )
 
@@ -91,7 +91,7 @@ def main(
             val_loss = predict_values(model, dataloader_val, optimizer, criterion, number_of_epochs, train=False, epoch=epoch)
         
         #Update the learning rate scheduler
-        scheduler.step(val_loss)
+        scheduler.step(train_loss)
 
         print('train_loss = ', train_loss, 'val_loss = ', val_loss)
 
