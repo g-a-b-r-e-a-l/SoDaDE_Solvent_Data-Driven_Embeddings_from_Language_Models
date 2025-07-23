@@ -17,18 +17,20 @@ def create_collate_fn(token_type_vocab, masking_probability=0.15):
         token_type_ids = torch.stack(token_type_ids_list)
         SMILES_fps = torch.stack(SMILES_fps_list)
 
-        sequence_ids = torch.arange(token_type_ids.shape[1])
-
         attention_mask = torch.ones(token_type_ids.shape, dtype=torch.bool)
         masked_lm_labels = torch.full((token_type_ids.shape), -100.0, dtype=torch.float)
         final_mask = torch.zeros_like(masked_lm_labels, dtype=torch.bool)
 
         present_vals = ~torch.isnan(values_ref)
+        value_positions = token_type_ids == token_type_vocab['VALUE_TOKEN']
+        selected_positions = present_vals & value_positions
+
         rand_tensor = torch.rand(values_ref.shape)
-        final_mask = (present_vals) & (rand_tensor < masking_probability)
+        final_mask = (selected_positions) & (rand_tensor < masking_probability)
 
         masked_lm_labels[final_mask]= values_ref[final_mask]
         token_type_ids[final_mask] = token_type_vocab['MASK_TOKEN']
+
         token_type_ids[missing_val_mask] = token_type_vocab['MASK_TOKEN'] # Apply mask for existing missing values
 
         return {
