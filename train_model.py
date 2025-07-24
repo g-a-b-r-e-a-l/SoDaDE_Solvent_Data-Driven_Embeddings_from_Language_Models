@@ -28,7 +28,11 @@ def main(
     DATA_PATH: str = "7376_train_dataset_norm.csv",
     VAL_PATH: str = "560_val_dataset_norm.csv",
     MASKING_PROBABILITY: float = 0.3,
-    DROPOUT_RATE: float = 0.3
+    DROPOUT_RATE: float = 0.3,
+    transformer_layers=3,
+    model_dimension=384,
+    attention_heads=8
+
 
 ):
     
@@ -48,11 +52,11 @@ def main(
     model = MultiModalRegressionTransformer(
          chemberta_fp_dim=chemberta_dimension,
          column_vocab_size=VOCAB_SIZE_COLUMNS,
-         transformer_hidden_dim=TRANSFORMER_HIDDEN_DIM,
+         transformer_hidden_dim=model_dimension,
          max_sequence_length=MAX_SEQUENCE_LENGTH,
          token_type_vocab_size=TOKEN_TYPE_VOCAB_SIZE,
-         num_attention_heads=NUM_ATTENTION_HEADS,
-         num_transformer_layers=NUM_TRANSFORMER_LAYERS,
+         num_attention_heads=attention_heads,
+         num_transformer_layers=transformer_layers,
          dropout_rate=DROPOUT_RATE
      )
     
@@ -141,6 +145,12 @@ if __name__ == "__main__":
     argparser.add_argument("-vd", "--val_data", type=str, help="Path to the validation data file.")
     argparser.add_argument("-mp", "--masking_probability", type=float, default=0.3, help="Probability of masking tokens in the input.")
     argparser.add_argument("-dr", "--dropout_rate", type=float, default=0.3, help="Dropout rate for the model.")
+    argparser.add_argument("-tl", "--transformer_layers", type=int, default=3, help="Number of attention layers stacked")
+    argparser.add_argument("-d_model", "--model_dimension", type=int, default=384, help="Model dimension, should be divisible by 8")
+    argparser.add_argument("-at", "--attention_heads", type=int, default=8, help="Model dimension, should be divisible by 8")
+
+
+
 
     args = argparser.parse_args()
 
@@ -152,5 +162,9 @@ if __name__ == "__main__":
         DATA_PATH=args.train_data if args.train_data else "7376_train_dataset_norm.csv",
         VAL_PATH=args.val_data if args.val_data else "560_val_dataset_norm.csv",
         MASKING_PROBABILITY=args.masking_probability,
-        DROPOUT_RATE=args.dropout_rate
+        DROPOUT_RATE=args.dropout_rate,
+        transformer_layers=args.transformer_layers,
+        model_dimension=args.model_dimension,
+        attention_heads=args.attention_heads
+
     )
