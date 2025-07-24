@@ -18,7 +18,7 @@ def run_batch_inference(
     batch_size: int = 16,
     num_samples: int = None,
     masking_probability: float = 0.0,
-    dropout_rate: float = 0.3,
+    dropout_rate: float = 0.25,
     csv_pattern: str = "*.csv"
 ):
     """

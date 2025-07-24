@@ -84,12 +84,12 @@ def load_model(model_path, chemberta_dimension, dropout_rate):
     model = MultiModalRegressionTransformer(
         chemberta_fp_dim=chemberta_dimension,
         column_vocab_size=VOCAB_SIZE_COLUMNS,
-        transformer_hidden_dim=TRANSFORMER_HIDDEN_DIM,
+        transformer_hidden_dim=64,
         max_sequence_length=MAX_SEQUENCE_LENGTH,
         token_type_vocab_size=TOKEN_TYPE_VOCAB_SIZE,
-        num_attention_heads=NUM_ATTENTION_HEADS,
-        num_transformer_layers=NUM_TRANSFORMER_LAYERS,
-        dropout_rate=dropout_rate
+        num_attention_heads=8,
+        num_transformer_layers=2,
+        dropout_rate=0
     )
     
     print(f"Loading model from {model_path}")
