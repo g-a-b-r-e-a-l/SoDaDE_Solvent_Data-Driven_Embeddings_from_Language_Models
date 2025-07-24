@@ -1,5 +1,6 @@
 import argparse
 import textwrap
+import pandas as pd
 
 from dataset import load_dataset
 from collate import create_collate_fn
@@ -73,7 +74,8 @@ def main(
 
     # Training loop
     best_val_loss = float('inf') # Initialize with a very large number
-
+    train_loss_list = []
+    val_loss_list = []
     for epoch in range(number_of_epochs):
         model.train() # Set the model to training mode
 
@@ -94,7 +96,21 @@ def main(
         scheduler.step(train_loss)
 
         print('train_loss = ', train_loss, 'val_loss = ', val_loss)
+        train_loss_list.append(train_loss)
+        val_loss_list.append(val_loss)
 
+        # Correct way to create a DataFrame from lists
+        data = {
+            'train_loss': train_loss_list,
+            'val_loss': val_loss_list
+        }
+        new_df = pd.DataFrame(data)
+
+        # It's good practice to add a .csv extension to the filename
+        # Also, index=False prevents pandas from writing the DataFrame index as the first column in the CSV
+        new_df.to_csv('Loss_over_time.csv', index=False)
+
+        print("Loss data saved to 'Loss_over_time.csv'")
         if val_loss < best_val_loss:
             print(f'Validation loss decreased ({best_val_loss:.4f} --> {val_loss:.4f}). Saving model...')
             best_val_loss = val_loss
