@@ -97,7 +97,7 @@ def main(
             val_loss = predict_values(model, dataloader_val, optimizer, criterion, number_of_epochs, train=False, epoch=epoch)
         
         #Update the learning rate scheduler
-        scheduler.step(train_loss)
+        scheduler.step(val_loss)
 
         print('train_loss = ', train_loss, 'val_loss = ', val_loss)
         train_loss_list.append(train_loss)
