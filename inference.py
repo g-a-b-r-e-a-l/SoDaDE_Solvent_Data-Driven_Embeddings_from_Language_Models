@@ -87,8 +87,8 @@ def load_model(model_path, chemberta_dimension, dropout_rate):
         transformer_hidden_dim=64,
         max_sequence_length=MAX_SEQUENCE_LENGTH,
         token_type_vocab_size=TOKEN_TYPE_VOCAB_SIZE,
-        num_attention_heads=8,
-        num_transformer_layers=2,
+        num_attention_heads=16,
+        num_transformer_layers=4,
         dropout_rate=0
     )
     
