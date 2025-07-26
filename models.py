@@ -207,6 +207,8 @@ class MultiModalRegressionTransformer(nn.Module):
         else:
             return transformer_output
 
+            
+
     def generative_inference(self,
                            token_type_vocab: dict,
                            SMILES_fps: torch.Tensor,
