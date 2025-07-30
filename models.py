@@ -104,6 +104,7 @@ class MultiModalInputEmbeddings(nn.Module):
         input_embeddings = torch.zeros(batch_size, max_batch_seq_len, self.transformer_hidden_dim,
                                        dtype=torch.float, device=token_type_ids.device)
 
+
         word_mask = (token_type_ids == token_type_vocab['WORD_TOKEN'])
         smiles_mask = (token_type_ids == token_type_vocab['SMILES_TOKEN'])
         value_mask = (token_type_ids == token_type_vocab['VALUE_TOKEN'])
@@ -113,8 +114,13 @@ class MultiModalInputEmbeddings(nn.Module):
             input_embeddings[word_mask] = self.property_embedding(word_tokens_ref[word_mask])
         if smiles_mask.any():
             input_embeddings[smiles_mask] = self.smiles_proj(SMILES_fps[smiles_mask])
+
+
         if value_mask.any():
             input_embeddings[value_mask] = self.value_proj(values_ref[value_mask].unsqueeze(-1))
+
+
+
         if special_token_mask.any():
             input_embeddings[special_token_mask] = self.token_type_embeddings(token_type_ids[special_token_mask])
 

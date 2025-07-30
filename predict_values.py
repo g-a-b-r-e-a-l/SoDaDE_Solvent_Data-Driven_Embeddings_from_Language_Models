@@ -21,7 +21,6 @@ def predict_values(model, dataloader, optimizer, criterion, num_epochs, train=Tr
         
         # 3. Forward pass
         predicted_values = model(TOKEN_TYPE_VOCAB,  **batch_dict)
-        
         # 4. Get true masked labels
         true_masked_labels = inputs['masked_lm_labels'][inputs['masked_lm_labels'] != -100.0]
         

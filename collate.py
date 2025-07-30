@@ -19,7 +19,6 @@ def create_collate_fn(token_type_vocab, masking_probability=0.15):
         # These positions should be ignored by attention as they contain no information.
         # The 'token_type_ids' for these positions remain unchanged (e.g., VALUE_TOKEN).
         attention_mask[missing_val_mask] = False
-
         # 3. Initialize masked_lm_labels to ignore index (-100.0)
         # This is a common convention for PyTorch's CrossEntropyLoss to ignore loss at these positions.
         masked_lm_labels = torch.full(token_type_ids.shape, -100.0, dtype=torch.float)
@@ -40,6 +39,7 @@ def create_collate_fn(token_type_vocab, masking_probability=0.15):
         # Change the token_type_id for the MLM-masked positions to MASK_TOKEN.
         # These tokens are part of the input sequence the model sees and attends to.
         token_type_ids[mlm_mask] = token_type_vocab['MASK_TOKEN']
+        token_type_ids[missing_val_mask] = token_type_vocab['MASK_TOKEN']  # Ensure missing values retain their type
 
         # NOTE: The original `token_type_ids` for positions marked by `missing_val_mask`
         # are intentionally left as they were (e.g., `VALUE_TOKEN` if they were conceptually
