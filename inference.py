@@ -4,11 +4,11 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-from dataset import load_dataset
-from collate import create_collate_fn
-from models import MultiModalRegressionTransformer
+from model.dataset import load_dataset
+from model.collate import create_collate_fn
+from model.decoder import MultiModalRegressionTransformer
 
-from config import (VOCAB_SIZE_COLUMNS, TRANSFORMER_HIDDEN_DIM, 
+from model.config import (VOCAB_SIZE_COLUMNS, TRANSFORMER_HIDDEN_DIM, 
                     MAX_SEQUENCE_LENGTH, TOKEN_TYPE_VOCAB_SIZE, 
                     NUM_ATTENTION_HEADS, NUM_TRANSFORMER_LAYERS,  
                     COLUMN_DICT, TOKEN_TYPE_VOCAB)
