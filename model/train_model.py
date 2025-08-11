@@ -2,9 +2,9 @@ import argparse
 import textwrap
 import pandas as pd
 
-from dataset import load_dataset
-from collate import create_collate_fn
-from predict_values import predict_values
+from model.dataset import load_dataset
+from model.collate import create_collate_fn
+from model.predict_values import predict_values
 
 from torch.utils.data import DataLoader
 import torch.optim as optim
@@ -12,9 +12,9 @@ from tqdm.auto import tqdm # For a nice progress bar
 import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from models import MultiModalRegressionTransformer
+from model.models import MultiModalRegressionTransformer
 
-from config import (VOCAB_SIZE_COLUMNS, TRANSFORMER_HIDDEN_DIM, 
+from model.config import (VOCAB_SIZE_COLUMNS, TRANSFORMER_HIDDEN_DIM, 
                     MAX_SEQUENCE_LENGTH, TOKEN_TYPE_VOCAB_SIZE, 
                     NUM_ATTENTION_HEADS, NUM_TRANSFORMER_LAYERS,  
                     COLUMN_DICT, TOKEN_TYPE_VOCAB)

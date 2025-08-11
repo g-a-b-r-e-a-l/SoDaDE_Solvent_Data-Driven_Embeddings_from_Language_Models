@@ -5,7 +5,7 @@ from utils import (load_and_clean_csv, create_diff_token_vocabs,
                     create_token_type_tensor, create_fingerprints, 
                     load_chemberta_model_and_tokenizer)
 
-from config import WORD_TOKENS, TOKEN_TYPES
+from model.config import WORD_TOKENS, TOKEN_TYPES
 
 class MolecularPropertyDataset(Dataset):
     def __init__(self, df, max_seq_length, column_dict,

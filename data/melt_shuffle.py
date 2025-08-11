@@ -5,7 +5,7 @@ import random
 import json
 import math
 import argparse
-from create_n_shuffle_data import create_train_test_split
+from data.prepare_data import create_train_test_split
 
 
 def transform_dataframe(df):

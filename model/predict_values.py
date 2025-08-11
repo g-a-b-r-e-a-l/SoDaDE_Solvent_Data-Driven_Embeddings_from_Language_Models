@@ -1,4 +1,4 @@
-from config import (
+from model.config import (
     BATCH_SIZE,
     MAX_SEQUENCE_LENGTH,
     TOKEN_TYPE_VOCAB
