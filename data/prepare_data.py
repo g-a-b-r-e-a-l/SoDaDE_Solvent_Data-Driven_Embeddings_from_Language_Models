@@ -106,7 +106,7 @@ def rename_fully_extracted_solvent_types(df):
     return df_solvent_types
 
 # ----------------- Individual Solvent Selection Helper -----------------
-def select_individual_test_solvents(df, n_solvents=14, num_solvents_per_type=1):
+def select_individual_test_solvents(df, n_solvents=5, num_solvents_per_type=1):
     """
     Select individual solvents (by SMILES) from specified solvent types for testing.
     
@@ -148,7 +148,7 @@ def select_individual_test_solvents(df, n_solvents=14, num_solvents_per_type=1):
 
 # ----------------- Main Split Function -----------------
 def create_train_val_test_split(file_path, rename_solvents=True, method='z_score',
-                                val_solvents=14, test_solvents=2):
+                                n_solvents=5, val_percent=0.2):
     """
     Creates train, validation, and test sets where the test set is made of individual
     solvents (by SMILES) from specified solvent types BEFORE normalization.
@@ -192,28 +192,32 @@ def create_train_val_test_split(file_path, rename_solvents=True, method='z_score
     
     # Calculate target sizes based on full dataset
     total_size = len(df)
+    target_val_size = int(total_size * val_percent)
     
     # Select individual test solvents from clean dataset only
-    val_smiles = select_individual_test_solvents(df_clean, val_solvents, num_solvents_per_type=1)
-    val_df = df_clean[df_clean['SMILES'].isin(val_smiles)].copy()
-    remaining_full_df = df_clean[~df_clean['SMILES'].isin(val_df)].copy()
-
-    test_smiles = select_individual_test_solvents(remaining_full_df, test_solvents)
+    test_smiles = select_individual_test_solvents(df_clean, n_solvents)
     
     # Step 1 — Extract test set from clean dataset
-    test_df = remaining_full_df[remaining_full_df['SMILES'].isin(test_smiles)].copy()
+    test_df = df_clean[df_clean['SMILES'].isin(test_smiles)].copy()
     
     print(f"Test set size: {len(test_df)} samples (no NaN)")
     
     # Step 2 — Extract validation set from full dataset (excluding test SMILES)
+    remaining_full_df = df[~df['SMILES'].isin(test_smiles)].copy()
     
     # Check if we have enough samples for validation
-        
+    if len(remaining_full_df) < target_val_size:
+        raise ValueError(f"Not enough samples for validation set. "
+                        f"Need {target_val_size} samples but only have {len(remaining_full_df)} "
+                        f"samples remaining after test set extraction.")
+    
+    val_df = remaining_full_df.sample(n=target_val_size, random_state=42)
+    
     # Step 3 — Create training set from remaining data (includes NaN sequences)
     test_val_smiles = set(test_df['SMILES'].tolist() + val_df['SMILES'].tolist())
-
     train_df = df[~df['SMILES'].isin(test_val_smiles)].copy()
     print(f'Train set size: {len(train_df)} (includes NaN), Val set size: {len(val_df)} (includes NaN), Test set size: {len(test_df)} (no NaN)')
+    print(f'Validation percentage of original dataset: {target_val_size/total_size:.2%}')
     print(f'NaN sequences in training set: {train_df.isna().any(axis=1).sum()}')
     print(f'NaN sequences in validation set: {val_df.isna().any(axis=1).sum()}')
     

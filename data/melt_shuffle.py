@@ -171,13 +171,13 @@ def shuffle_column_pairs(df, n_shuffles):
 
     return final_df
 
-def create_datasets(file_path, rename_solvents, val_solvents, test_solvents, n_shuffles, output_dir):
+def create_datasets(file_path, rename_solvents, n_solvents, val_percentage, n_shuffles, output_dir):
     train_df, val_df, test_df, stats, test_solvents_info = create_train_val_test_split(
         file_path,
         rename_solvents=True,
         method='z_score',
-        val_solvents=val_solvents, 
-        test_solvents=test_solvents
+        n_solvents=n_solvents,   # None = random selection
+        val_percent=val_percentage
     )
 
     train_melt = transform_dataframe(train_df)
@@ -212,8 +212,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create shuffled datasets and save normalisation stats.")
     parser.add_argument("--file_path", type=str, help="Path to the input dataset file", default='full_extracted_table.csv')
     parser.add_argument("--rename_solvents", action="store_true", help="Whether to rename solvents")
-    parser.add_argument("--val_solvents", type=int, help="Number of solvent types to select", default=14)
-    parser.add_argument("--test_solvents", type=int, help="Number of solvent typesin val set", default=2)
+    parser.add_argument("--n_solvents", type=int, help="Number of solvent types to select", default=5)
+    parser.add_argument("--val_percentage", type=float, default=0.1, help="Percentage of val data (0.0–1.0)")
     parser.add_argument("--n_shuffles", type=int, default=5, help="Number of shuffles per row")
     parser.add_argument("--output_dir", type=str, default=".", help="Directory to save output files")
 
@@ -222,8 +222,8 @@ if __name__ == "__main__":
     create_datasets(
         file_path=args.file_path,
         rename_solvents=args.rename_solvents,
-        val_solvents=args.val_solvents,
-        test_solvents=args.test_solvents,
+        n_solvents=args.n_solvents,
+        val_percentage=args.val_percentage,
         n_shuffles=args.n_shuffles,
         output_dir=args.output_dir
     )
