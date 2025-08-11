@@ -48,6 +48,7 @@ def create_diff_token_vocabs(WORD_TOKENS, TOKEN_TYPES):
 def word_token_indicies(df, max_seq_length, word_columns, word_vocab):
     word_index_tensor = torch.zeros((df.shape[0], max_seq_length), dtype=torch.long)
     col_id = 1 # account for start token column
+
     for i in df.columns:
         if i in word_columns:
             word_index_tensor[:, col_id] = torch.tensor(df[i].map(word_vocab))

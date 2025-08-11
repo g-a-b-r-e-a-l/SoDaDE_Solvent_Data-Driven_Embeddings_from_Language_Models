@@ -1,180 +1,62 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import random
 from rdkit import Chem
 
-# This file takes the 'extracted_table.csv' and splits the dataset into 2 - a training and validation. 
-# i wonder about using a test set - there is not one in the model cross validation
-#so part of me wonders if it is really necesaary - becuse i am trying to predict every
-#single property with one module insteald one model per property. do this for now and then see
+# ----------------- Normalisation Helpers -----------------
+def normalize_with_stats(df: pd.DataFrame, stats: dict, method: str = 'z_score') -> pd.DataFrame:
+    """Apply precomputed normalization stats to a dataframe."""
+    df_norm = df.copy()
+    numerical_cols = df_norm.select_dtypes(include=np.number).columns
 
-# normalisation code:
-
-def _min_max_scale(series: pd.Series) -> pd.Series:
-    """
-    Applies Min-Max scaling to a Pandas Series.
-    Scales values to a range between 0 and 1.
-
-    Formula: X_normalized = (X - X_min) / (X_max - X_min)
-
-    Args:
-        series (pd.Series): The input Series to be scaled.
-
-    Returns:
-        pd.Series: The Min-Max scaled Series.
-    """
-    min_val = series.min()
-    max_val = series.max()
-    if max_val == min_val: # Avoid division by zero if all values are the same
-        return pd.Series(0.0, index=series.index)
-    return (series - min_val) / (max_val - min_val)
-
-def _z_score_scale(series: pd.Series) -> pd.Series:
-    """
-    Applies Z-score standardization to a Pandas Series.
-    Transforms data to have a mean of 0 and a standard deviation of 1.
-
-    Formula: X_normalized = (X - X_mean) / X_std
-
-    Args:
-        series (pd.Series): The input Series to be scaled.
-
-    Returns:
-        pd.Series: The Z-score standardized Series.
-    """
-    mean_val = series.mean()
-    std_val = series.std()
-    if std_val == 0: # Avoid division by zero if all values are the same
-        return pd.Series(0.0, index=series.index)
-    norm_series = (series - mean_val) / std_val
-    return norm_series, mean_val, std_val
-
-def normalize_dataframe_columns(df: pd.DataFrame, method: str = 'min_max') -> pd.DataFrame:
-    """
-    Normalizes all numerical columns in a Pandas DataFrame using the specified method.
-
-    Args:
-        df (pd.DataFrame): The input DataFrame containing numerical columns to be normalized.
-        method (str): The normalization method to use.
-                      Accepted values: 'min_max' (default) or 'z_score'.
-
-    Returns:
-        pd.DataFrame: A new DataFrame with the numerical columns normalized.
-                      Non-numerical columns will remain unchanged.
-    """
-    # Create a copy of the DataFrame to avoid modifying the original
-    df_normalized = df.copy()
-
-    # Identify numerical columns
-    numerical_cols = df_normalized.select_dtypes(include=np.number).columns
-
-    if numerical_cols.empty:
-        print("No numerical columns found to normalize.")
-        return df_normalized
-
-    if method not in ['min_max', 'z_score']:
-        raise ValueError("Invalid normalization method. Choose 'min_max' or 'z_score'.")
-    property_stats = {}
-    # Apply the selected scaling method to each numerical column
     for col in numerical_cols:
-        property_stats[col] = {}
+        if col in stats:
+            if method == 'min_max':
+                min_val = stats[col]['min']
+                max_val = stats[col]['max']
+                df_norm[col] = (df_norm[col] - min_val) / (max_val - min_val) if max_val != min_val else 0.0
+            elif method == 'z_score':
+                mean_val = stats[col]['mean']
+                std_val = stats[col]['std']
+                df_norm[col] = (df_norm[col] - mean_val) / std_val if std_val != 0 else 0.0
+    return df_norm
+
+def compute_normalization_stats(df: pd.DataFrame, method: str = 'z_score') -> dict:
+    """Compute normalization parameters from dataframe."""
+    stats = {}
+    numerical_cols = df.select_dtypes(include=np.number).columns
+
+    for col in numerical_cols:
         if method == 'min_max':
-            df_normalized[col] = _min_max_scale(df_normalized[col])
+            stats[col] = {'min': df[col].min(), 'max': df[col].max()}
         elif method == 'z_score':
-            df_normalized[col], mean_val, std_val = _z_score_scale(df_normalized[col])
-            property_stats[col]['mean'] = mean_val
-            property_stats[col]['std'] = std_val
-    print('changed df nature in norm?', isinstance(df_normalized, pd.DataFrame))
+            stats[col] = {'mean': df[col].mean(), 'std': df[col].std()}
+    return stats
 
-    return df_normalized, property_stats
-
-#cannonicalise smiles strings for consistent results:
+# ----------------- SMILES Canonicalisation -----------------
 def canonicalize_smiles(smiles):
-    """
-    Canonicalizes a SMILES string using RDKit.
-    Returns None if the SMILES is invalid.
-    """
+    """Canonicalizes a SMILES string using RDKit."""
     try:
         mol = Chem.MolFromSmiles(smiles)
         if mol is not None:
             return Chem.MolToSmiles(mol, canonical=True)
         else:
-            return None # Or you could return an empty string, or the original invalid SMILES
+            return None
     except Exception:
-        return None # Handle any other potential RDKit errors
+        return None
 
 def canonicalize_smiles_column(df: pd.DataFrame, smiles_column_name: str) -> pd.DataFrame:
-    """
-    Canonicalizes all SMILES strings in a specified DataFrame column in-place.
-
-    Args:
-        df (pd.DataFrame): The input DataFrame.
-        smiles_column_name (str): The name of the column containing SMILES strings.
-
-    Returns:
-        pd.DataFrame: The DataFrame with the SMILES column canonicalized.
-                      (Note: The operation is done in-place, but returning for chaining)
-    """
+    """Canonicalizes all SMILES strings in a specified DataFrame column."""
     if smiles_column_name not in df.columns:
         print(f"Error: Column '{smiles_column_name}' not found in the DataFrame.")
         return df
-
     print(f"Canonicalizing SMILES in column '{smiles_column_name}'...")
-    # Apply the canonicalization function to the specified column
-    # .astype(str) is used to ensure all entries are treated as strings before passing to RDKit
     df[smiles_column_name] = df[smiles_column_name].astype(str).apply(canonicalize_smiles)
     print("Canonicalization complete.")
     return df
 
-def rename_fully_extracted_solvent_types(df):
-#CHANGED SOLVENT AMOUNTS, HERE IS ORIGIONAL: numbers = [22, 13, 16, 15, 18, 20, 8, 15, 6, 8, 10, 28, 8, 4]
-#CATECHOL NUMBERS = [22, 13, 16, 15, 19, 21, 8, 15, 6, 8, 10, 29, 8, 4]
-    SOLVENT_TYPES = ['alkane', 'aromatic', 'halohydrocarbon', 'ether', 'ketone', 'ester', 'nitrile', 'amine', 'amide', 'misc_N_compound', 'carboxylic_acid', 'monohydric_alcohol', 'polyhydric_alcohol', 'other']
-
-    numbers = [22, 13, 16, 15, 18, 20, 8, 15, 6, 8, 10, 28, 8, 4]
-    total = sum(numbers)
-    if total != df.shape[0]:
-        print(total), print(df.shape[0])
-        raise ValueError("size mismatch")
-    else:
-        solvents_enumerated = []
-
-        for i in range(len(numbers)):
-            for j in range(numbers[i]):
-                solvents_enumerated.append(SOLVENT_TYPES[i])
-
-        df_solvent_types = df.drop(columns='solvent')
-        df_solvent_types.insert(loc=0, column='solvent', value=solvents_enumerated)
-
-    return df_solvent_types
-
-# extract a random number of solvents for validation
-def create_train_test_split(file_path, rename_solvents, test_percent):
-    """
-    Loads a CSV file and splits it into training and testing sets for missing value imputation.
-
-    The function calculates a test set size equal to 10% of the total rows in the original
-    dataset. It then attempts to sample this number of rows from the subset of data that
-    contains no missing values.
-
-    All rows with missing values are guaranteed to be in the training set.
-
-    Args:
-        file_path (str): The path to the CSV file.
-
-    Returns:
-        tuple: A tuple containing two pandas DataFrames:
-               - train_df (pd.DataFrame): The training set.
-               - test_df (pd.DataFrame): The test set (composed of complete rows).
-    """
-    try:
-        # Load the entire dataset from the provided CSV file path
-        df = pd.read_csv(file_path)
-        print(f"Successfully loaded {file_path}. Total rows: {len(df)}")
-
-        # Define the mapping for column renaming based on the corrected headers
-        column_rename_map = {
+def rename_columns(df):
+    column_rename_map = {
             'solvent': 'solvent', # Assuming this is the 'solvent' column based on the example data
             'solvent smiles': 'SMILES',
             'ET(30)': 'ET30',
@@ -188,65 +70,167 @@ def create_train_test_split(file_path, rename_solvents, test_percent):
             'N (mol/cm3)': 'N_mol_cm3',
             'n' : 'n',
             'f(n)': 'fn',
-            'δ': 'delta'
+            'δ': 'delta'}
+    
+    actual_rename_map = {old_name: new_name for old_name, new_name in column_rename_map.items() if old_name in df.columns}
 
-         # The last valid column header as per your clarification
-        }
-        # Filter the rename map to only include columns actually present in the DataFrame
-        # This helps prevent errors if some old column names aren't found
-        actual_rename_map = {old_name: new_name for old_name, new_name in column_rename_map.items() if old_name in df.columns}
+    # Rename the columns
+    if actual_rename_map:
+        df = df.rename(columns=actual_rename_map)
+        print(f"Renamed columns: {list(actual_rename_map.keys())} to {list(actual_rename_map.values())}")
+    else:
+        print("No specified columns found for renaming or no renaming needed.")
 
-        # Rename the columns
-        if actual_rename_map:
-            df = df.rename(columns=actual_rename_map)
-            print(f"Renamed columns: {list(actual_rename_map.keys())} to {list(actual_rename_map.values())}")
-        else:
-            print("No specified columns found for renaming or no renaming needed.")
+    return df
 
-        if rename_solvents:
-            df = rename_fully_extracted_solvent_types(df)
-        print(f"Labeling solvent types.")
-        df_norm, norm_stats_dict = normalize_dataframe_columns(df, method='z_score')
-        print(f"Normalized columns.")
 
-        df_canon = canonicalize_smiles_column(df_norm, 'SMILES')
-        print(f"Canonicalized SMILES.")
-        # Placeholder for your existing functions, assuming they are defined elsewhere
-        # If these functions are not defined, this code will cause an error.
-        # For demonstration, I'm commenting them out if you don't have them defined here.
-        # You should uncomment them if they are part of your project.
-        # df = rename_fully_extracted_solvent_types(df)
-        # print(f"Labeling solvent types.")
-        # df = normalize_dataframe_columns(df, method='z_score')
-        # print(f"Normalized columns.")
+# ----------------- Solvent Naming -----------------
+def rename_fully_extracted_solvent_types(df):
+    SOLVENT_TYPES = [
+        'alkane', 'aromatic', 'halohydrocarbon', 'ether', 'ketone', 'ester',
+        'nitrile', 'amine', 'amide', 'misc_N_compound', 'carboxylic_acid',
+        'monohydric_alcohol', 'polyhydric_alcohol', 'other'
+    ]
+    numbers = [22, 13, 16, 15, 18, 20, 8, 15, 6, 8, 10, 28, 8, 4]
+    total = sum(numbers)
+    if total != df.shape[0]:
+        print(total), print(df.shape[0])
+        raise ValueError("size mismatch")
+    else:
+        solvents_enumerated = []
+        for i in range(len(numbers)):
+            for j in range(numbers[i]):
+                solvents_enumerated.append(SOLVENT_TYPES[i])
+        df_solvent_types = df.drop(columns='solvent')
+        df_solvent_types.insert(loc=0, column='solvent', value=solvents_enumerated)
+    return df_solvent_types
 
-        # Calculate the target size for the test set (10% of the original total)
-        target_test_size = int(np.floor(test_percent * len(df_canon)))
-        print(f"Target test set size (10% of total): {target_test_size} rows.")
+# ----------------- Individual Solvent Selection Helper -----------------
+def select_individual_test_solvents(df, n_solvents=14, num_solvents_per_type=1):
+    """
+    Select individual solvents (by SMILES) from specified solvent types for testing.
+    
+    Args:
+        df: DataFrame with 'solvent' and 'SMILES' columns
+        test_solvent_types: List of solvent types to select from. If None, randomly pick 2.
+        num_solvents_per_type: Number of individual solvents to select from each type
+    
+    Returns:
+        list: SMILES strings of selected test solvents
+    """
 
-        # Identify and isolate the rows that have no missing values at all.
-        complete_rows_df = df_canon.dropna().copy()
-        print(f"Found {len(complete_rows_df)} rows with no missing values.")
+    solvent_types = df['solvent'].unique().tolist()
 
-        # Check if there are enough complete rows to create the desired test set size
-        if len(complete_rows_df) < target_test_size:
-            print(f"Warning: Not enough complete rows ({len(complete_rows_df)}) to meet the target test size of {target_test_size}.")
-            print("Using all available complete rows for the test set.")
-            test_df = complete_rows_df.copy()
-        else:
-            # Randomly sample the target number of rows from the complete rows to create the test set.
-            test_df = complete_rows_df.sample(n=target_test_size, random_state=42)
-
-        print(f"Created test set with {len(test_df)} randomly sampled complete rows.")
-
-        # The training set is created by dropping the rows that were selected for the test set.
-        # This ensures all rows with missing values, plus the remaining complete rows, are in the training set.
-        train_df = df_canon.drop(test_df.index)
-        print(f"Created training set with {len(train_df)} rows.")
-
-        return train_df, test_df, norm_stats_dict
-
-    except FileNotFoundError:
-        print(f"Error: The file '{file_path}' was not found.")
-        return None, None
+    if n_solvents < len(solvent_types):
+        print("Issue - number of solvent types requested is too much")
+    test_solvent_types = random.sample(solvent_types, n_solvents)
+    print(f"Randomly selected solvent types for test set: {test_solvent_types}")
+    
+    test_smiles = []
+    
+    for solvent_type in test_solvent_types:
+        # Get all unique SMILES for this solvent type
+        type_solvents = df[df['solvent'] == solvent_type]['SMILES'].unique().tolist()
+        # Remove None values if any
+        type_solvents = [smiles for smiles in type_solvents if smiles is not None]
         
+        if len(type_solvents) < num_solvents_per_type:
+            print(f"Warning: Only {len(type_solvents)} solvents available in {solvent_type}, "
+                  f"but {num_solvents_per_type} requested. Using all available.")
+            selected = type_solvents
+        else:
+            selected = random.sample(type_solvents, num_solvents_per_type)
+        
+        test_smiles.extend(selected)
+        print(f"Selected from {solvent_type}: {selected}")
+    
+    return test_smiles
+
+# ----------------- Main Split Function -----------------
+def create_train_val_test_split(file_path, rename_solvents=True, method='z_score',
+                                val_solvents=14, test_solvents=2):
+    """
+    Creates train, validation, and test sets where the test set is made of individual
+    solvents (by SMILES) from specified solvent types BEFORE normalization.
+    Training and validation sets include NaN sequences, while test set contains only
+    complete sequences (no NaN values).
+    
+    Args:
+        file_path: Path to CSV file
+        rename_solvents: Whether to rename solvent types
+        method: Normalization method ('z_score' or 'min_max')
+        test_solvent_types: List of solvent types to select test solvents from. 
+                           If None, randomly selects 2 types.
+        val_percent: Percentage of full dataset to use for validation
+    
+    Returns:
+        train_df_norm: Normalized training set (includes NaN sequences)
+        val_df_norm: Normalized validation set (includes NaN sequences)
+        test_df_norm: Normalized test set (no NaN values)
+        norm_stats: Normalization statistics
+        test_solvents_info: Dictionary with test solvent types and SMILES
+        
+    Raises:
+        ValueError: If there are insufficient samples for validation set after test extraction
+    """
+    df = pd.read_csv(file_path)
+    df = rename_columns(df)
+    print('renamed columns to ', df.columns )
+    
+    # Rename solvents if requested
+    if rename_solvents:
+        df = rename_fully_extracted_solvent_types(df)
+    print('created solvent types')
+    
+    # Canonicalize SMILES
+    df = canonicalize_smiles_column(df, 'SMILES')
+    print('canonicalised SMILES')
+    
+    # Create clean dataset for test/val extraction (no NaN values)
+    df_clean = df.dropna()
+    print(f"Clean dataset size: {len(df_clean)} samples (from original {len(df)})")
+    
+    # Calculate target sizes based on full dataset
+    total_size = len(df)
+    
+    # Select individual test solvents from clean dataset only
+    val_smiles = select_individual_test_solvents(df_clean, val_solvents, num_solvents_per_type=1)
+    val_df = df_clean[df_clean['SMILES'].isin(val_smiles)].copy()
+    remaining_full_df = df_clean[~df_clean['SMILES'].isin(val_df)].copy()
+
+    test_smiles = select_individual_test_solvents(remaining_full_df, test_solvents)
+    
+    # Step 1 — Extract test set from clean dataset
+    test_df = remaining_full_df[remaining_full_df['SMILES'].isin(test_smiles)].copy()
+    
+    print(f"Test set size: {len(test_df)} samples (no NaN)")
+    
+    # Step 2 — Extract validation set from full dataset (excluding test SMILES)
+    
+    # Check if we have enough samples for validation
+        
+    # Step 3 — Create training set from remaining data (includes NaN sequences)
+    test_val_smiles = set(test_df['SMILES'].tolist() + val_df['SMILES'].tolist())
+
+    train_df = df[~df['SMILES'].isin(test_val_smiles)].copy()
+    print(f'Train set size: {len(train_df)} (includes NaN), Val set size: {len(val_df)} (includes NaN), Test set size: {len(test_df)} (no NaN)')
+    print(f'NaN sequences in training set: {train_df.isna().any(axis=1).sum()}')
+    print(f'NaN sequences in validation set: {val_df.isna().any(axis=1).sum()}')
+    
+    # Step 3 — Compute stats from training set only
+    norm_stats = compute_normalization_stats(train_df, method)
+    print('extracting norm stats')
+    
+    # Step 4 — Apply normalization to all sets
+    train_df_norm = normalize_with_stats(train_df, norm_stats, method)
+    val_df_norm = normalize_with_stats(val_df, norm_stats, method)
+    test_df_norm = normalize_with_stats(test_df, norm_stats, method)
+    
+    # Create info about test solvents
+    test_solvents_info = {
+        'test_solvent_types': test_df['solvent'].unique().tolist(),
+        'test_smiles': test_smiles,
+        'test_solvent_details': test_df[['solvent', 'SMILES']].drop_duplicates().to_dict('records')
+    }
+
+    return train_df_norm, val_df_norm, test_df_norm, norm_stats, test_solvents_info

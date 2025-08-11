@@ -1,6 +1,6 @@
 import pandas as pd
 from torch.utils.data import Dataset
-from utils import (load_and_clean_csv, create_diff_token_vocabs,
+from model.utils import (load_and_clean_csv, create_diff_token_vocabs,
                     create_values_tensor, word_token_indicies, 
                     create_token_type_tensor, create_fingerprints, 
                     load_chemberta_model_and_tokenizer)

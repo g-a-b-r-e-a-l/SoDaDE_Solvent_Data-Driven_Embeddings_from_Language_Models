@@ -5,7 +5,7 @@ import random
 import json
 import math
 import argparse
-from data.prepare_data import create_train_test_split
+from prepare_data import create_train_val_test_split
 
 
 def transform_dataframe(df):
@@ -171,36 +171,49 @@ def shuffle_column_pairs(df, n_shuffles):
 
     return final_df
 
-def create_datasets(file_path, rename_solvents, test_percentage, n_shuffles, output_dir):
-    train_df, test_df, norm_stats = create_train_test_split(file_path, rename_solvents, test_percentage)
+def create_datasets(file_path, rename_solvents, val_solvents, test_solvents, n_shuffles, output_dir):
+    train_df, val_df, test_df, stats, test_solvents_info = create_train_val_test_split(
+        file_path,
+        rename_solvents=True,
+        method='z_score',
+        val_solvents=val_solvents, 
+        test_solvents=test_solvents
+    )
 
     train_melt = transform_dataframe(train_df)
+    val_melt = transform_dataframe(val_df)
     test_melt = transform_dataframe(test_df)
     
     train_shuffle = shuffle_column_pairs(train_melt, n_shuffles)
+    val_shuffle = shuffle_column_pairs(val_melt, n_shuffles)
     test_shuffle = shuffle_column_pairs(test_melt, n_shuffles)
 
-    print(f"Training set shape: {train_shuffle.shape}, Test set shape: {test_shuffle.shape}")
+    print(f"Training set shape: {train_shuffle.shape}, Val shape: {val_shuffle.shape}, Test set shape: {test_shuffle.shape}")
 
     # Save CSVs
     train_csv_path = f"{output_dir}/train_set.csv"
+    val_csv_path = f"{output_dir}/val_set.csv"
     test_csv_path = f"{output_dir}/test_set.csv"
+    test_values_path = f"{output_dir}/test_values.csv"
 
     train_shuffle.to_csv(train_csv_path, index=False)
+    val_shuffle.to_csv(val_csv_path, index=False)
     test_shuffle.to_csv(test_csv_path, index=False)
+    test_df.to_csv(test_values_path, index=False)
 
     # Save normalisation stats to JSON
     norm_json_path = f"{output_dir}/normalisation_stats.json"
     with open(norm_json_path, "w") as f:
-        json.dump(norm_stats, f, indent=4)
-
-    print(f"Saved:\n - {train_csv_path}\n - {test_csv_path}\n - {norm_json_path}")
-
+        json.dump(stats, f, indent=4)
+    print(f"Train set has {train_df.shape[0]} solvents, Val set has {val_df.shape[0]} solvents and test has {test_df.shape[0]} solvents")
+    print(f"Saved:\n - {train_csv_path}\n - {val_csv_path}\n- {test_csv_path}\n - {norm_json_path}")
+    print(test_solvents_info)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create shuffled datasets and save normalisation stats.")
-    parser.add_argument("--file_path", type=str, required=True, help="Path to the input dataset file")
+    parser.add_argument("--file_path", type=str, help="Path to the input dataset file", default='full_extracted_table.csv')
     parser.add_argument("--rename_solvents", action="store_true", help="Whether to rename solvents")
-    parser.add_argument("--test_percentage", type=float, default=0.2, help="Percentage of test data (0.0–1.0)")
+    parser.add_argument("--val_solvents", type=int, help="Number of solvent types to select", default=14)
+    parser.add_argument("--test_solvents", type=int, help="Number of solvent typesin val set", default=2)
     parser.add_argument("--n_shuffles", type=int, default=5, help="Number of shuffles per row")
     parser.add_argument("--output_dir", type=str, default=".", help="Directory to save output files")
 
@@ -209,7 +222,8 @@ if __name__ == "__main__":
     create_datasets(
         file_path=args.file_path,
         rename_solvents=args.rename_solvents,
-        test_percentage=args.test_percentage,
+        val_solvents=args.val_solvents,
+        test_solvents=args.test_solvents,
         n_shuffles=args.n_shuffles,
         output_dir=args.output_dir
     )

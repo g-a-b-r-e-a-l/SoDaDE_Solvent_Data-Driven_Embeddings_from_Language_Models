@@ -93,6 +93,7 @@ class MultiModalInputEmbeddings(nn.Module):
         self.LayerNorm = nn.LayerNorm(transformer_hidden_dim, eps=1e-12)
         self.dropout = nn.Dropout(dropout_rate)
 
+
     def forward(self,
                 token_type_vocab: dict,
                 SMILES_fps: torch.Tensor,
@@ -104,11 +105,9 @@ class MultiModalInputEmbeddings(nn.Module):
         input_embeddings = torch.zeros(batch_size, max_batch_seq_len, self.transformer_hidden_dim,
                                        dtype=torch.float, device=token_type_ids.device)
 
-
         word_mask = (token_type_ids == token_type_vocab['WORD_TOKEN'])
         smiles_mask = (token_type_ids == token_type_vocab['SMILES_TOKEN'])
         value_mask = (token_type_ids == token_type_vocab['VALUE_TOKEN'])
-        special_token_mask = ~ (word_mask | smiles_mask | value_mask)
 
         if word_mask.any():
             input_embeddings[word_mask] = self.property_embedding(word_tokens_ref[word_mask])
@@ -118,11 +117,6 @@ class MultiModalInputEmbeddings(nn.Module):
 
         if value_mask.any():
             input_embeddings[value_mask] = self.value_proj(values_ref[value_mask].unsqueeze(-1))
-
-
-
-        if special_token_mask.any():
-            input_embeddings[special_token_mask] = self.token_type_embeddings(token_type_ids[special_token_mask])
 
         token_type_embedding_values = self.token_type_embeddings(token_type_ids)
         embeddings = input_embeddings + token_type_embedding_values
@@ -216,46 +210,35 @@ class MultiModalRegressionTransformer(nn.Module):
             
 
     def generative_inference(self,
-                           token_type_vocab: dict,
-                           SMILES_fps: torch.Tensor,
-                           word_tokens_ref: torch.Tensor,
-                           values_ref: torch.Tensor,
-                           token_type_ids: torch.Tensor,
-                           attention_mask: torch.Tensor,
-                           positions_to_predict: list):
+                            token_type_vocab: dict,
+                            SMILES_fps: torch.Tensor,
+                            word_tokens_ref: torch.Tensor,
+                            values_ref: torch.Tensor,
+                            token_type_ids: torch.Tensor,
+                            attention_mask: torch.Tensor,
+                            positions_to_predict: list):
         """
-        Generates missing values in a sequence one by one.
-
-        Args:
-            ... (same as forward pass) ...
-            positions_to_predict (list): A list of indices in the sequence where
-                                         values need to be predicted.
+        Generates missing values in a sequence.
+        Returns only the predicted values at the specified positions.
         """
-        self.eval() # Set the model to evaluation mode
-        with torch.no_grad():
-            # Clone the inputs to avoid modifying the originals
-            values_ref_filled = values_ref.clone()
+        
+        # The values_ref tensor is used for context in the forward pass.
+        # We don't need to modify it in a loop if we predict all positions at once.
+        transformer_output = self.forward(
+            token_type_vocab=token_type_vocab,
+            SMILES_fps=SMILES_fps,
+            word_tokens_ref=word_tokens_ref,
+            values_ref=values_ref, # Pass the original tensor with nans/masked tokens
+            token_type_ids=token_type_ids,
+            attention_mask=attention_mask
+        )
 
-            for pos in sorted(positions_to_predict):
-                # Run a forward pass with the current state of the inputs
-                transformer_output = self.forward(
-                    token_type_vocab=token_type_vocab,
-                    SMILES_fps=SMILES_fps,
-                    word_tokens_ref=word_tokens_ref,
-                    values_ref=values_ref_filled,
-                    token_type_ids=token_type_ids,
-                    attention_mask=attention_mask
-                )
+        # Extract the hidden states for all positions we need to predict
+        # Note: This assumes positions_to_predict is a list of integers
+        hidden_states_to_predict = transformer_output[:, positions_to_predict, :]
 
-                # Get the hidden state for the token we want to predict a value for
-                # transformer_output shape: (batch_size, sequence_length, hidden_dim)
-                hidden_state_to_predict = transformer_output[:, pos, :]
+        # The regression head can process all positions at once
+        # Output shape will be (batch_size, num_positions_to_predict)
+        predicted_values = self.regression_head(hidden_states_to_predict).squeeze(-1)
 
-                # Pass this hidden state through the regression head
-                predicted_value = self.regression_head(hidden_state_to_predict).squeeze(-1)
-
-                # Update the values_ref tensor with the predicted value
-                # This ensures the model uses this new information for the next prediction
-                values_ref_filled[:, pos] = predicted_value
-
-        return values_ref_filled
+        return predicted_values

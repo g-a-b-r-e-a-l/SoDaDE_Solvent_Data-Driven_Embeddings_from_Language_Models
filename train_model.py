@@ -1,6 +1,7 @@
 import argparse
 import textwrap
 import pandas as pd
+import os
 
 from model.dataset import load_dataset
 from model.collate import create_collate_fn
@@ -12,7 +13,7 @@ from tqdm.auto import tqdm # For a nice progress bar
 import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from model.models import MultiModalRegressionTransformer
+from model.decoder import MultiModalRegressionTransformer
 
 from model.config import (VOCAB_SIZE_COLUMNS, TRANSFORMER_HIDDEN_DIM, 
                     MAX_SEQUENCE_LENGTH, TOKEN_TYPE_VOCAB_SIZE, 
@@ -80,23 +81,25 @@ def main(
     best_val_loss = float('inf') # Initialize with a very large number
     train_loss_list = []
     val_loss_list = []
+    model_folder = 'model/saved_models'
+# Create the directory if it doesn't exist
+    os.makedirs(model_folder, exist_ok=True)
+
     for epoch in range(number_of_epochs):
         model.train() # Set the model to training mode
-
         # Use tqdm for a progress bar
         # 'desc' is the description, 'leave' keeps the bar after completion
         # 'position=0' helps if you have nested progress bars
 
         train_loss = predict_values(model, dataloader_train, optimizer, criterion, number_of_epochs, train=True, epoch=epoch)
-    
-        # 7. Validation step    
-   
+        
+        # 7. Validation step      
         model.eval()
 
         with torch.no_grad():
             val_loss = predict_values(model, dataloader_val, optimizer, criterion, number_of_epochs, train=False, epoch=epoch)
         
-        #Update the learning rate scheduler
+        # Update the learning rate scheduler
         scheduler.step(val_loss)
 
         print('train_loss = ', train_loss, 'val_loss = ', val_loss)
@@ -112,7 +115,7 @@ def main(
 
         # It's good practice to add a .csv extension to the filename
         # Also, index=False prevents pandas from writing the DataFrame index as the first column in the CSV
-        new_df.to_csv('Loss_over_time.csv', index=False)
+        new_df.to_csv('model/Loss_over_time.csv', index=False)
 
         print("Loss data saved to 'Loss_over_time.csv'")
         if val_loss < best_val_loss:
@@ -120,10 +123,11 @@ def main(
             best_val_loss = val_loss
             rounded = round(best_val_loss, 4)
             # Save the model's state_dict
-            best_model_path = f'val_loss{rounded}_DPR_{DROPOUT_RATE}_MP_{MASKING_PROBABILITY}_DM_{model_dimension}_TL_{transformer_layers}_heads_{attention_heads}.pth'
+            # Use os.path.join to create a file path that works on any operating system
+            file_name = f'val_loss{rounded}_DPR_{DROPOUT_RATE}_MP_{MASKING_PROBABILITY}_DM_{model_dimension}_TL_{transformer_layers}_heads_{attention_heads}.pth'
+            best_model_path = os.path.join(model_folder, file_name)
             torch.save(model.state_dict(), best_model_path)
-    # save results here
-
+            
     return None
 
 
