@@ -171,13 +171,21 @@ def shuffle_column_pairs(df, n_shuffles):
 
     return final_df
 
-def create_datasets(file_path, rename_solvents, n_solvents, val_percentage, n_shuffles, output_dir):
+def create_datasets(file_path, rename_solvents, 
+                    num_solvents_per_type, n_shuffles, output_dir, seed=42):
+    
+    val_solvent_types = ['alkane', 'ether', 'ketone', 'ester',
+        'nitrile',  'amide', 'carboxylic_acid',
+        'monohydric_alcohol', 'polyhydric_alcohol']
+    test_solvent_types = ['alkane', 'ether', 'ketone', 'ester','monohydric_alcohol']
     train_df, val_df, test_df, stats, test_solvents_info = create_train_val_test_split(
         file_path,
-        rename_solvents=True,
+        rename_solvents=rename_solvents,
         method='z_score',
-        n_solvents=n_solvents,   # None = random selection
-        val_percent=val_percentage
+        val_solvent_types=val_solvent_types,
+        test_solvent_types=test_solvent_types,
+        num_solvents_per_type=num_solvents_per_type,
+        seed=seed
     )
 
     train_melt = transform_dataframe(train_df)
@@ -194,11 +202,17 @@ def create_datasets(file_path, rename_solvents, n_solvents, val_percentage, n_sh
     train_csv_path = f"{output_dir}/train_set.csv"
     val_csv_path = f"{output_dir}/val_set.csv"
     test_csv_path = f"{output_dir}/test_set.csv"
+
+    train_values_path = f"{output_dir}/train_values.csv"
+    val_values_path = f"{output_dir}/val_values.csv"
     test_values_path = f"{output_dir}/test_values.csv"
 
     train_shuffle.to_csv(train_csv_path, index=False)
     val_shuffle.to_csv(val_csv_path, index=False)
     test_shuffle.to_csv(test_csv_path, index=False)
+
+    train_df.to_csv(train_values_path, index=False)
+    val_df.to_csv(val_values_path, index=False)
     test_df.to_csv(test_values_path, index=False)
 
     # Save normalisation stats to JSON
@@ -208,24 +222,26 @@ def create_datasets(file_path, rename_solvents, n_solvents, val_percentage, n_sh
     print(f"Train set has {train_df.shape[0]} solvents, Val set has {val_df.shape[0]} solvents and test has {test_df.shape[0]} solvents")
     print(f"Saved:\n - {train_csv_path}\n - {val_csv_path}\n- {test_csv_path}\n - {norm_json_path}")
     print(test_solvents_info)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create shuffled datasets and save normalisation stats.")
     parser.add_argument("--file_path", type=str, help="Path to the input dataset file", default='full_extracted_table.csv')
     parser.add_argument("--rename_solvents", action="store_true", help="Whether to rename solvents")
-    parser.add_argument("--n_solvents", type=int, help="Number of solvent types to select", default=5)
-    parser.add_argument("--val_percentage", type=float, default=0.1, help="Percentage of val data (0.0–1.0)")
+
+    parser.add_argument("--num_solvents_per_type", type=int, default=1, help="Number of solvents to select from each type")
     parser.add_argument("--n_shuffles", type=int, default=5, help="Number of shuffles per row")
     parser.add_argument("--output_dir", type=str, default=".", help="Directory to save output files")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
 
     args = parser.parse_args()
 
     create_datasets(
         file_path=args.file_path,
         rename_solvents=args.rename_solvents,
-        n_solvents=args.n_solvents,
-        val_percentage=args.val_percentage,
+        num_solvents_per_type=args.num_solvents_per_type,
         n_shuffles=args.n_shuffles,
-        output_dir=args.output_dir
+        output_dir=args.output_dir,
+        seed=args.seed
     )
 
 

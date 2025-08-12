@@ -106,29 +106,24 @@ def rename_fully_extracted_solvent_types(df):
     return df_solvent_types
 
 # ----------------- Individual Solvent Selection Helper -----------------
-def select_individual_test_solvents(df, n_solvents=5, num_solvents_per_type=1):
+def select_solvents_from_types(df, solvent_types, num_solvents_per_type=1, purpose=""):
     """
-    Select individual solvents (by SMILES) from specified solvent types for testing.
+    Select individual solvents (by SMILES) from specified solvent types.
     
     Args:
         df: DataFrame with 'solvent' and 'SMILES' columns
-        test_solvent_types: List of solvent types to select from. If None, randomly pick 2.
+        solvent_types: List of solvent types to select from
         num_solvents_per_type: Number of individual solvents to select from each type
+        purpose: String describing purpose (for logging)
     
     Returns:
-        list: SMILES strings of selected test solvents
+        list: SMILES strings of selected solvents
     """
-
-    solvent_types = df['solvent'].unique().tolist()
-
-    if n_solvents < len(solvent_types):
-        print("Issue - number of solvent types requested is too much")
-    test_solvent_types = random.sample(solvent_types, n_solvents)
-    print(f"Randomly selected solvent types for test set: {test_solvent_types}")
+    print(f"Selected solvent types for {purpose}: {solvent_types}")
     
-    test_smiles = []
+    selected_smiles = []
     
-    for solvent_type in test_solvent_types:
+    for solvent_type in solvent_types:
         # Get all unique SMILES for this solvent type
         type_solvents = df[df['solvent'] == solvent_type]['SMILES'].unique().tolist()
         # Remove None values if any
@@ -141,27 +136,28 @@ def select_individual_test_solvents(df, n_solvents=5, num_solvents_per_type=1):
         else:
             selected = random.sample(type_solvents, num_solvents_per_type)
         
-        test_smiles.extend(selected)
+        selected_smiles.extend(selected)
         print(f"Selected from {solvent_type}: {selected}")
     
-    return test_smiles
+    return selected_smiles
 
 # ----------------- Main Split Function -----------------
 def create_train_val_test_split(file_path, rename_solvents=True, method='z_score',
-                                n_solvents=5, val_percent=0.2):
+                                val_solvent_types=None, test_solvent_types=None, 
+                                num_solvents_per_type=1, seed=42):
     """
-    Creates train, validation, and test sets where the test set is made of individual
-    solvents (by SMILES) from specified solvent types BEFORE normalization.
-    Training and validation sets include NaN sequences, while test set contains only
-    complete sequences (no NaN values).
+    Creates train, validation, and test sets where specific solvents are selected 
+    for validation and test sets, with the rest going to training.
+    Test set contains only complete sequences (no NaN values).
     
     Args:
         file_path: Path to CSV file
         rename_solvents: Whether to rename solvent types
         method: Normalization method ('z_score' or 'min_max')
-        test_solvent_types: List of solvent types to select test solvents from. 
-                           If None, randomly selects 2 types.
-        val_percent: Percentage of full dataset to use for validation
+        val_solvent_types: List of solvent types to use for validation set
+        test_solvent_types: List of solvent types to use for test set
+        num_solvents_per_type: Number of individual solvents to select from each type
+        seed: Random seed for reproducibility
     
     Returns:
         train_df_norm: Normalized training set (includes NaN sequences)
@@ -171,8 +167,15 @@ def create_train_val_test_split(file_path, rename_solvents=True, method='z_score
         test_solvents_info: Dictionary with test solvent types and SMILES
         
     Raises:
-        ValueError: If there are insufficient samples for validation set after test extraction
+        ValueError: If val_solvent_types or test_solvent_types are not provided
     """
+    # Set random seed for reproducibility
+    random.seed(seed)
+    np.random.seed(seed)
+    
+    if val_solvent_types is None or test_solvent_types is None:
+        raise ValueError("Both val_solvent_types and test_solvent_types must be provided")
+    
     df = pd.read_csv(file_path)
     df = rename_columns(df)
     print('renamed columns to ', df.columns )
@@ -186,46 +189,36 @@ def create_train_val_test_split(file_path, rename_solvents=True, method='z_score
     df = canonicalize_smiles_column(df, 'SMILES')
     print('canonicalised SMILES')
     
-    # Create clean dataset for test/val extraction (no NaN values)
+    # Create clean dataset for test extraction (no NaN values)
     df_clean = df.dropna()
     print(f"Clean dataset size: {len(df_clean)} samples (from original {len(df)})")
     
-    # Calculate target sizes based on full dataset
-    total_size = len(df)
-    target_val_size = int(total_size * val_percent)
+    # Step 1 — Select specific solvents for validation and test sets
+    test_smiles = select_solvents_from_types(df_clean, test_solvent_types, num_solvents_per_type, "test set")
     
-    # Select individual test solvents from clean dataset only
-    test_smiles = select_individual_test_solvents(df_clean, n_solvents)
-    
-    # Step 1 — Extract test set from clean dataset
+    # Step 2 — Extract validation and test sets
     test_df = df_clean[df_clean['SMILES'].isin(test_smiles)].copy()
+
+    remaining_df = df[~df['SMILES'].isin(test_smiles)].copy()
+
     
-    print(f"Test set size: {len(test_df)} samples (no NaN)")
-    
-    # Step 2 — Extract validation set from full dataset (excluding test SMILES)
-    remaining_full_df = df[~df['SMILES'].isin(test_smiles)].copy()
-    
-    # Check if we have enough samples for validation
-    if len(remaining_full_df) < target_val_size:
-        raise ValueError(f"Not enough samples for validation set. "
-                        f"Need {target_val_size} samples but only have {len(remaining_full_df)} "
-                        f"samples remaining after test set extraction.")
-    
-    val_df = remaining_full_df.sample(n=target_val_size, random_state=42)
-    
+    val_smiles = select_solvents_from_types(remaining_df, val_solvent_types, num_solvents_per_type, "validation set")
+    val_df = df[df['SMILES'].isin(val_smiles)].copy()
+
+
     # Step 3 — Create training set from remaining data (includes NaN sequences)
-    test_val_smiles = set(test_df['SMILES'].tolist() + val_df['SMILES'].tolist())
-    train_df = df[~df['SMILES'].isin(test_val_smiles)].copy()
+    val_test_smiles = set(val_smiles + test_smiles)
+    train_df = df[~df['SMILES'].isin(val_test_smiles)].copy()
+    
     print(f'Train set size: {len(train_df)} (includes NaN), Val set size: {len(val_df)} (includes NaN), Test set size: {len(test_df)} (no NaN)')
-    print(f'Validation percentage of original dataset: {target_val_size/total_size:.2%}')
     print(f'NaN sequences in training set: {train_df.isna().any(axis=1).sum()}')
     print(f'NaN sequences in validation set: {val_df.isna().any(axis=1).sum()}')
     
-    # Step 3 — Compute stats from training set only
+    # Step 4 — Compute stats from training set only
     norm_stats = compute_normalization_stats(train_df, method)
     print('extracting norm stats')
     
-    # Step 4 — Apply normalization to all sets
+    # Step 5 — Apply normalization to all sets
     train_df_norm = normalize_with_stats(train_df, norm_stats, method)
     val_df_norm = normalize_with_stats(val_df, norm_stats, method)
     test_df_norm = normalize_with_stats(test_df, norm_stats, method)
