@@ -156,11 +156,11 @@ def main():
                         help='File containing vocab ID to property label lookup')
     parser.add_argument('--device', default='cpu',
                         help='Device for model execution (cpu/cuda)')
-    parser.add_argument('--hidden_dim', '-hd', type=int, default=128,
+    parser.add_argument('--hidden_dim', '-hd', type=int, default=64,
                         help='Hidden dimension of the transformer model')
-    parser.add_argument('--attention_heads', '-ah', type=int, default=32,
+    parser.add_argument('--attention_heads', '-ah', type=int, default=16,
                         help='Number of attention heads in the transformer model')
-    parser.add_argument('--transformer_layers', '-tl', type=int, default=2,
+    parser.add_argument('--transformer_layers', '-tl', type=int, default=5,
                         help='Number of transformer layers in the model')
     args = parser.parse_args()
     
