@@ -208,13 +208,13 @@ def save_attention_weights(model, sample_input, save_dir="attention_weights", sa
     for layer_name, weights in attention_weights_np.items():
         np.save(os.path.join(save_dir, f"{save_name}_{layer_name}.npy"), weights)
     
-    print(f"Attention weights saved to {save_dir}/")
+    #print(f"Attention weights saved to {save_dir}/")
     print(f"Layers captured: {list(attention_weights_np.keys())}")
-    for layer_name, weights in attention_weights_np.items():
-        print(f"  {layer_name} shape: {weights.shape}")
-        print(f"    - Batch size: {weights.shape[0]}")
-        print(f"    - Number of heads: {weights.shape[1]}")
-        print(f"    - Sequence length: {weights.shape[2]} x {weights.shape[3]}")
+    #for layer_name, weights in attention_weights_np.items():
+        #print(f"  {layer_name} shape: {weights.shape}")
+        #print(f"    - Batch size: {weights.shape[0]}")
+        #print(f"    - Number of heads: {weights.shape[1]}")
+        #print(f"    - Sequence length: {weights.shape[2]} x {weights.shape[3]}")
     
     return attention_weights_np
 
