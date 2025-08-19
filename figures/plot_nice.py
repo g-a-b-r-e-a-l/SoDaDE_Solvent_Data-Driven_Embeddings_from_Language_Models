@@ -246,7 +246,7 @@ def plot_attention_weights(attention_weights_dict, layer_name="layer_0", sample_
     
     # Create heatmap
     sns.heatmap(attn_matrix, 
-                cmap='Blues', 
+                cmap='Reds', 
                 cbar=True,
                 square=True,
                 cbar_kws={'label': 'Attention Weight'})
@@ -275,119 +275,13 @@ def plot_attention_weights(attention_weights_dict, layer_name="layer_0", sample_
     plt.show()
 
 
-def plot_attention_comparison(attention_weights_dict, layers_to_compare=None, sample_idx=0, head_idx=0,
-                            token_type_ids=None, save_path=None, figsize=(20, 5)):
-    """
-    Plot attention weights from multiple layers side by side for comparison
-    
-    Args:
-        attention_weights_dict: Dictionary of attention weights by layer
-        layers_to_compare: List of layer names to compare (if None, uses all available)
-        sample_idx: Which sample from the batch to plot
-        head_idx: Which attention head to plot
-        token_type_ids: Optional token type information for labeling
-        save_path: Optional path to save the plot
-        figsize: Figure size
-    """
-    if layers_to_compare is None:
-        layers_to_compare = sorted(attention_weights_dict.keys())
-    
-    num_layers = len(layers_to_compare)
-    fig, axes = plt.subplots(1, num_layers, figsize=figsize)
-    
-    if num_layers == 1:
-        axes = [axes]
-    
-    for i, layer_name in enumerate(layers_to_compare):
-        if layer_name not in attention_weights_dict:
-            print(f"Layer {layer_name} not found. Skipping.")
-            continue
-            
-        attention_weights = attention_weights_dict[layer_name]
-        attn_matrix = attention_weights[sample_idx, head_idx]
-        
-        sns.heatmap(attn_matrix, 
-                    cmap='Blues', 
-                    cbar=True,
-                    square=True,
-                    ax=axes[i],
-                    cbar_kws={'label': 'Attention Weight'})
-        
-        axes[i].set_title(f'{layer_name.title()}\nHead {head_idx}')
-        axes[i].set_xlabel('Key Position')
-        if i == 0:
-            axes[i].set_ylabel('Query Position')
-    
-    plt.suptitle(f'Attention Weights Comparison - Sample {sample_idx}', fontsize=16)
-    plt.tight_layout()
-    
-    if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Comparison plot saved to {save_path}")
-    
-    plt.show()
+
 
 
 def hellow(hi):
     print(hi)
 
-def plot_attention_heads_comparison(attention_weights_dict, layer_name="layer_0", sample_idx=0, 
-                                  heads_to_compare=None, token_type_ids=None, save_path=None, figsize=(20, 5)):
-    """
-    Plot attention weights from multiple heads in the same layer side by side
-    
-    Args:
-        attention_weights_dict: Dictionary of attention weights by layer
-        layer_name: Which layer to analyze
-        sample_idx: Which sample from the batch to plot
-        heads_to_compare: List of head indices to compare (if None, uses first 4 heads)
-        token_type_ids: Optional token type information for labeling
-        save_path: Optional path to save the plot
-        figsize: Figure size
-    """
-    if layer_name not in attention_weights_dict:
-        print(f"Layer {layer_name} not found. Available layers: {list(attention_weights_dict.keys())}")
-        return
-    
-    attention_weights = attention_weights_dict[layer_name]
-    num_heads = attention_weights.shape[1]
-    
-    if heads_to_compare is None:
-        heads_to_compare = list(range(min(4, num_heads)))  # Show first 4 heads by default
-    
-    num_heads_to_plot = len(heads_to_compare)
-    fig, axes = plt.subplots(1, num_heads_to_plot, figsize=figsize)
-    
-    if num_heads_to_plot == 1:
-        axes = [axes]
-    
-    for i, head_idx in enumerate(heads_to_compare):
-        if head_idx >= num_heads:
-            print(f"Head {head_idx} not found. Layer has {num_heads} heads. Skipping.")
-            continue
-            
-        attn_matrix = attention_weights[sample_idx, head_idx]
-        
-        sns.heatmap(attn_matrix, 
-                    cmap='Blues', 
-                    cbar=True,
-                    square=True,
-                    ax=axes[i],
-                    cbar_kws={'label': 'Attention Weight'})
-        
-        axes[i].set_title(f'Head {head_idx}')
-        axes[i].set_xlabel('Key Position')
-        if i == 0:
-            axes[i].set_ylabel('Query Position')
-    
-    plt.suptitle(f'Attention Heads Comparison - {layer_name.title()}, Sample {sample_idx}', fontsize=16)
-    plt.tight_layout()
-    
-    if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Heads comparison plot saved to {save_path}")
-    
-    plt.show()
+
 
 
 def create_modified_model_from_original(original_model, layers_to_capture: Union[List[int], str] = "all"):

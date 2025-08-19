@@ -307,7 +307,7 @@ def plot_attention_comparison(attention_weights_dict, layers_to_compare=None, sa
         attn_matrix = attention_weights[sample_idx, head_idx]
         
         sns.heatmap(attn_matrix, 
-                    cmap='Blues', 
+                    cmap='viridis', 
                     cbar=True,
                     square=True,
                     ax=axes[i],
