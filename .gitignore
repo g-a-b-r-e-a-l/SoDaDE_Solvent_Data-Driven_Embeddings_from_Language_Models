@@ -96,3 +96,4 @@ slurm-*.out
 *.o[0-9]*
 
 submit.pbs
+data/notes.txt
