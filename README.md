@@ -7,7 +7,7 @@ This README file runs the SoDaDE model pretraining task. It pretrains a small tr
 This package was built on Python==3.10.18. Necessary packages can be installed using:
 
 ```bash
-pip install -r requirements.txt --no-deps
+pip install -r requirements.txt
 ```
 We recommend using a python environment for installation. In this case, conda environments were used. There were no dependecy issues raised at the time of writing this, August 2025.
 
